@@ -31,6 +31,15 @@ public class PaesSQLFunctionsTest {
     }
 
     @Test
+    public void selectAllFunctions() throws Exception {
+        String query = "SELECT *" +
+                " FROM " + TestsConstants.PAES_TEST_INDEX + "/account";
+        printQuery(query);
+        CSVResult csvResult = getCsvResult(false, query);
+        print(csvResult);
+    }
+
+    @Test
     public void operationNestInAggFunction() throws Exception {
         String query = "SELECT balance, age, min(age*3+1) as ret" +
                 " FROM " + TestsConstants.PAES_TEST_INDEX + "/account";
@@ -50,7 +59,7 @@ public class PaesSQLFunctionsTest {
 
     @Test
     public void operation() throws Exception {
-        String query = "SELECT balance, balance+((2-2)*2/2+10)*10 as ret" +
+        String query = "SELECT balance+((2-2)*2/2+10)*10 as ret" +
                 " FROM " + TestsConstants.PAES_TEST_INDEX + "/account";
         printQuery(query);
         CSVResult csvResult = getCsvResult(false, query);
