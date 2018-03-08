@@ -85,6 +85,16 @@ public class PaesSQLFunctionsTest {
     }
 
     @Test
+    public void extendedStatsFunctions() throws Exception {
+        String query = "SELECT extended_stats(age) " +
+                "FROM " + TestsConstants.PAES_TEST_INDEX + "/account " +
+                "where balance is not null group by gender";
+        printQuery(query);
+        CSVResult csvResult = getCsvResult(false, query);
+        print(csvResult);
+    }
+
+    @Test
     public void statsFunctions() throws Exception {
         String query = "SELECT stats(age) " +
                 "FROM " + TestsConstants.PAES_TEST_INDEX + "/account " +
@@ -95,6 +105,18 @@ public class PaesSQLFunctionsTest {
     }
 
     @Test
+    public void aggFunctions() throws Exception {
+        String query = "SELECT count(*), " +
+                "sum(balance) as sum_balance, " +
+                "min(balance) as min_balance, " +
+                "max(balance) as max_balance, " +
+                "avg(balance) as avg_balance " +
+                "FROM " + TestsConstants.PAES_TEST_INDEX + "/account group by gender";
+        printQuery(query);
+        CSVResult csvResult = getCsvResult(false, query);
+        print(csvResult);
+    }
+        @Test
     public void numberFunctions() throws Exception {
         String query = "SELECT balance, " +
                 "floor(balance) as floor_balance, " +
