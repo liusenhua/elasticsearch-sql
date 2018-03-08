@@ -60,6 +60,13 @@ public class SQLFunctions {
                         name);
                 break;
 
+            case "pow":
+                functionStr = pow(
+                        Util.expr2Object((SQLExpr) paramers.get(0).value).toString(),
+                        Util.expr2Object((SQLExpr) paramers.get(1).value).toString(),
+                        name);
+                break;
+
             case "floor":
             case "round":
             case "log":
@@ -67,12 +74,14 @@ public class SQLFunctions {
             case "ceil":
             case "cbrt":
             case "rint":
-            case "pow":
             case "exp":
             case "sqrt":
-                functionStr = mathSingleValueTemplate("Math."+methodName,methodName,Util.expr2Object((SQLExpr) paramers.get(0).value).toString(), name);
+            case "abs":
+                functionStr = mathSingleValueTemplate("Math."+methodName,
+                        methodName,
+                        Util.expr2Object((SQLExpr) paramers.get(0).value).toString(),
+                        name);
                 break;
-
 
             case "substring":
                 functionStr = substring(Util.expr2Object((SQLExpr) paramers.get(0).value).toString(),
@@ -218,7 +227,7 @@ public class SQLFunctions {
         String newScript = variance[variance.length - 1];
         if (newScript.trim().startsWith("def ")) {
             //for now ,if variant is string,then change to double.
-            return newScript.substring(4).split("=")[0].trim();
+            return newScript.trim().substring(4).split("=")[0].trim();
         } else return scriptStr;
     }
 
@@ -229,7 +238,7 @@ public class SQLFunctions {
         String newScript = variance[variance.length - 1];
         if (newScript.trim().startsWith("def ")) {
             //for now ,if variant is string,then change to double.
-            String temp = newScript.substring(4).split("=")[0].trim();
+            String temp = newScript.trim().substring(4).split("=")[0].trim();
 
             return " if( " + temp + " instanceof String) " + temp + "= Double.parseDouble(" + temp.trim() + "); ";
         } else return "";
@@ -262,6 +271,12 @@ public class SQLFunctions {
 
     }
 
+    public static Tuple<String, String> pow(String strColumn, String exponent, String valueName) {
+
+        return mathTwoValueTemplate("Math.pow","pow", strColumn, exponent, valueName);
+
+    }
+
     public static Tuple<String, String> trim(String strColumn, String valueName) {
 
         return strSingleValueTemplate("trim", strColumn, valueName);
@@ -278,7 +293,6 @@ public class SQLFunctions {
         } else {
             return new Tuple<>(name, strColumn + ";def " + name + " = " + methodName + "(" + valueName + ")");
         }
-
     }
 
     public static Tuple<String, String> strSingleValueTemplate(String methodName, String strColumn, String valueName) {
@@ -289,6 +303,15 @@ public class SQLFunctions {
             return new Tuple(name, strColumn + "; def " + name + " = " + valueName + "." + methodName + "()");
         }
 
+    }
+
+    private static Tuple<String, String> mathTwoValueTemplate(String methodName, String fieldName, String strColumn, String second, String valueName) {
+        String name = fieldName + "_" + random();
+        if (valueName == null) {
+            return new Tuple<>(name, "def " + name + " = " + methodName + "(doc['" + strColumn + "'].value," + second +")");
+        } else {
+            return new Tuple<>(name, strColumn + ";def " + name + " = " + methodName + "(" + valueName + "," + second + ")");
+        }
     }
 
     public static Tuple<String, String> floor(String strColumn, String valueName) {
