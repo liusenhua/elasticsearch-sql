@@ -31,6 +31,20 @@ public class PaesSQLFunctionsTest {
     }
 
     @Test
+    public void selectPaes() throws  Exception {
+        String query = "SELECT aum_edu,\n" +
+                "         ceil(((aum_edu))) as C701364119,\n" +
+                "         cust_no,ceil(((aum_edu))) as C310076827,\n" +
+                "         con_sex_mf,con_last_name,\n" +
+                "         ck_bal \n" +
+                "FROM n_custom  \n" +
+                "WHERE cust_no is not null ";
+        printQuery(query);
+        CSVResult csvResult = getCsvResult(false, query);
+        print(csvResult);
+    }
+
+    @Test
     public void selectAllFunctions() throws Exception {
         String query = "SELECT *" +
                 " FROM " + TestsConstants.PAES_TEST_INDEX + "/account";
@@ -77,7 +91,12 @@ public class PaesSQLFunctionsTest {
 
     @Test
     public void substring() throws Exception {
-        String query = "SELECT address, trim(substring(address,3,7)) as substr" +
+        String query = "SELECT address," +
+                "substring(address, 0) as substr_0," +
+                "substring(address, 1) as substr_1, " +
+                "substring(address, 1, 3) as substr_1_3," +
+                "substring(address, -3) as substr_-3, " +
+                "substring(address, -3, 3) as substr_-3_3" +
                 " FROM " + TestsConstants.PAES_TEST_INDEX + "/account";
         printQuery(query);
         CSVResult csvResult = getCsvResult(false, query);
