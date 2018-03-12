@@ -169,13 +169,14 @@ public class PaesMainTestSuite {
         String port = System.getenv("ES_TEST_PORT");
 
         if(host == null) {
-            host = "localhost";
-            System.out.println("ES_TEST_HOST enviroment variable does not exist. choose default 'localhost'");
+            //host = "10.20.13.82";
+            host = "10.14.192.198";
+            //System.out.println("ES_TEST_HOST enviroment variable does not exist. choose default 'localhost'");
         }
 
         if(port == null) {
-            port = "9300";
-            System.out.println("ES_TEST_PORT enviroment variable does not exist. choose default '9300'");
+            port = "9350";
+            //System.out.println("ES_TEST_PORT enviroment variable does not exist. choose default '9300'");
         }
 
         System.out.println(String.format("Connection details: host: %s. port:%s.", host, port));

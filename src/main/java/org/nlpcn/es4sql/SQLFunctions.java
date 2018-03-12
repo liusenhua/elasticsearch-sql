@@ -19,7 +19,7 @@ public class SQLFunctions {
 
     //Groovy Built In Functions
     public final static Set<String> buildInFunctions = Sets.newHashSet(
-            "exp", "log", "log10", "sqrt", "cbrt", "ceil", "floor", "rint", "pow", "round",
+            "exp", "ln", "log", "log10", "sqrt", "cbrt", "ceil", "floor", "rint", "pow", "round",
             "random", "abs", //nummber operator
             "split", "concat_ws", "substring", "trim",//string operator
             "add", "multiply", "divide", "subtract", "modulus",//binary operator
@@ -67,10 +67,28 @@ public class SQLFunctions {
                         name);
                 break;
 
+            case "ln":
+                functionStr = log(paramers.get(0).value.toString(),
+                        name);
+                break;
+
+            case "log":
+                if (paramers.size() == 2) {
+                    functionStr = log(paramers.get(0).value.toString(),
+                            paramers.get(1).value.toString(),
+                            name);
+                } else {
+                    functionStr = log(paramers.get(0).value.toString(),
+                            name);
+                }
+                break;
+
+            case "log10":
+                functionStr = log10(Util.expr2Object((SQLExpr) paramers.get(0).value).toString(), name);
+                break;
+
             case "floor":
             case "round":
-            case "log":
-            case "log10":
             case "ceil":
             case "cbrt":
             case "rint":
@@ -246,16 +264,34 @@ public class SQLFunctions {
 
     }
 
-
     public static Tuple<String, String> log(String strColumn, String valueName) {
+        return log(null, strColumn, valueName);
+    }
 
-        return mathSingleValueTemplate("log", strColumn, valueName);
+    public static Tuple<String, String> log(String base, String strColumn, String valueName) {
+        String methodName = "Math.log";
+        String name = "log_" + random();
+        if (base != null && base.trim() != "") {
+            name = "log_" + base.trim() + "_" + random();
+        }
 
+        String script = "";
+        if (valueName == null) {
+            script = "def " + name + " = " + methodName + "(doc['" + strColumn + "'].value)";
+        } else {
+            script = strColumn + ";def " + name + " = " + methodName + "(" + valueName + ")";
+        }
+
+        if (base != null && base.trim() != "") {
+            script = script + "/" + methodName + "(" + base + ")";
+        }
+
+        return new Tuple<>(name, script);
     }
 
     public static Tuple<String, String> log10(String strColumn, String valueName) {
 
-        return mathSingleValueTemplate("log10", strColumn, valueName);
+        return mathSingleValueTemplate("Math.log10", "log10", strColumn, valueName);
 
     }
 

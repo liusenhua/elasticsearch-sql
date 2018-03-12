@@ -67,6 +67,24 @@ public class PaesSQLFunctionsTest {
     }
 
     @Test
+    public void operationBetweenColumn() throws Exception {
+        String query = "SELECT (account_number + age) * 2" +
+                " FROM " + TestsConstants.PAES_TEST_INDEX + "/account";
+        printQuery(query);
+        CSVResult csvResult = getCsvResult(false, query);
+        print(csvResult);
+    }
+
+    @Test
+    public void substring() throws Exception {
+        String query = "SELECT address, trim(substring(address,3,7)) as substr" +
+                " FROM " + TestsConstants.PAES_TEST_INDEX + "/account";
+        printQuery(query);
+        CSVResult csvResult = getCsvResult(false, query);
+        print(csvResult);
+    }
+
+    @Test
     public void countAllFunctions() throws Exception {
         String query = "SELECT count(*) " +
                 " FROM " + TestsConstants.PAES_TEST_INDEX + "/account";
@@ -127,15 +145,19 @@ public class PaesSQLFunctionsTest {
     }
         @Test
     public void numberFunctions() throws Exception {
-        String query = "SELECT balance, " +
+        String query = "SELECT " +
                 "floor(balance) as floor_balance, " +
                 "ceil(balance) as ceil_balance, " +
                 "round(balance) as round_balance, " +
                 "abs(balance) as abs_balance, " +
                 "sqrt(balance) as sqrt_balance, " +
+                "ln(balance) as ln_balance, " +
                 "log(balance) as log_balance, " +
+                "log(3,balance) as log_3_balance, " +
+                "log(10,balance) as log_10_balance, " +
                 "log10(balance) as log10_balance, " +
-                "pow(balance,2) as pow_balance " +
+                "pow(balance,2) as pow_balance, " +
+                "balance " +
                 "FROM " + TestsConstants.PAES_TEST_INDEX + "/account order by account_number limit 1000 offset 0 ";
         printQuery(query);
         CSVResult csvResult = getCsvResult(false, query);
@@ -147,16 +169,20 @@ public class PaesSQLFunctionsTest {
     }
 
     private CSVResult getCsvResult(boolean flat, String query, boolean includeScore, boolean includeType,boolean includeId) throws SqlParseException, SQLFeatureNotSupportedException, Exception, CsvExtractorException {
-        SearchDao searchDao = MainTestSuite.getSearchDao() != null ? MainTestSuite.getSearchDao() : getSearchDao();
+        SearchDao searchDao = getSearchDao();
         QueryAction queryAction = searchDao.explain(query);
         Object execution = QueryActionElasticExecutor.executeAnyAction(searchDao.getClient(), queryAction);
         return new CSVResultsExtractor(includeScore, includeType, includeId).extractResults(execution, flat, ",");
     }
 
     private SearchDao getSearchDao() throws UnknownHostException {
+        if (PaesMainTestSuite.getSearchDao() != null) {
+            return PaesMainTestSuite.getSearchDao();
+        }
+
         Settings settings = Settings.builder().put("client.transport.ignore_cluster_name", true).build();
         Client client = new PreBuiltTransportClient(settings).
-                addTransportAddress(MainTestSuite.getTransportAddress());
+                addTransportAddress(PaesMainTestSuite.getTransportAddress());
         return new SearchDao(client);
     }
 
@@ -176,7 +202,6 @@ public class PaesSQLFunctionsTest {
 
     private void printQuery(String query) throws Exception {
         System.out.println(query);
-        SearchDao searchDao = MainTestSuite.getSearchDao() != null ? MainTestSuite.getSearchDao() : getSearchDao();
-        System.out.println(searchDao.explain(query).explain().explain());
+        System.out.println(getSearchDao().explain(query).explain().explain());
     }
 }
