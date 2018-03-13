@@ -5,6 +5,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import com.alibaba.druid.sql.ast.expr.*;
 import com.alibaba.druid.sql.ast.statement.SQLJoinTableSource;
@@ -207,6 +209,24 @@ public class Util {
             }
         }
         return false;
+    }
+
+    /**
+     * 根据键值对填充字符串，如("hello ${name}",{name:"andy"})
+     * 输出：
+     * @param content
+     * @param map
+     * @return
+     */
+    public static String renderString(String content, Map<String, String> map){
+        Set<Map.Entry<String, String>> sets = map.entrySet();
+        for(Map.Entry<String, String> entry : sets) {
+            String regex = "\\$\\{" + entry.getKey() + "\\}";
+            Pattern pattern = Pattern.compile(regex);
+            Matcher matcher = pattern.matcher(content);
+            content = matcher.replaceAll(entry.getValue());
+        }
+        return content;
     }
 
 }

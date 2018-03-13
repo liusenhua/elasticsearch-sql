@@ -8,9 +8,7 @@ import com.google.common.collect.Sets;
 import org.elasticsearch.common.collect.Tuple;
 import org.nlpcn.es4sql.domain.KVValue;
 
-import java.util.List;
-import java.util.Random;
-import java.util.Set;
+import java.util.*;
 
 /**
  * Created by allwefantasy on 8/19/16.
@@ -102,10 +100,16 @@ public class SQLFunctions {
                 break;
 
             case "substring":
-                functionStr = substring(Util.expr2Object((SQLExpr) paramers.get(0).value).toString(),
-                        Integer.parseInt(Util.expr2Object((SQLExpr) paramers.get(1).value).toString()),
-                        Integer.parseInt(Util.expr2Object((SQLExpr) paramers.get(2).value).toString())
-                        , name);
+                if (paramers.size() == 3) {
+                    functionStr = substring(Util.expr2Object((SQLExpr) paramers.get(0).value).toString(),
+                            Integer.parseInt(Util.expr2Object((SQLExpr) paramers.get(1).value).toString()),
+                            Integer.parseInt(Util.expr2Object((SQLExpr) paramers.get(2).value).toString())
+                            , name);
+                } else {
+                    functionStr = substring(Util.expr2Object((SQLExpr) paramers.get(0).value).toString(),
+                            Integer.parseInt(Util.expr2Object((SQLExpr) paramers.get(1).value).toString())
+                            , name);
+                }
                 break;
             case "trim":
                 functionStr = trim(Util.expr2Object((SQLExpr) paramers.get(0).value).toString(), name);
@@ -356,16 +360,105 @@ public class SQLFunctions {
 
     }
 
+    public static Tuple<String, String> substring(String strColumn, int pos, String valueName) {
+        // SELECT SUBSTRING('Sakila', -3);  => 'ila';
+        // SELECT SUBSTRING('Quadratically',5); => 'ratically';
+        String template_column = "" +
+                "def str = doc['${COLUMN}'].value; if (str == null) return null; if(str == '') return '';" +
+                "def begin = ${POS} - 1; " +
+                "def ${RET} = str.substring(begin)";
+        String template_column_2 = "" +
+                "def str = doc['${COLUMN}'].value; if (str == null) return null; if(str == '') return '';" +
+                "def begin = ${POS} + str.length(); " +
+                "def ${RET} = str.substring(begin)";
+        String template_value = "" +
+                "def str = ${VALUE}; if (str == null) return null; if(str == '') return ''; " +
+                "def begin = ${POS} - 1; " +
+                "def ${RET} = str.substring(begin)";
+        String template_value_2 = "" +
+                "def str = ${VALUE}; if (str == null) return null; if(str == '') return ''; " +
+                "def begin = ${POS} + str.length(); " +
+                "def ${RET} = str.substring(begin)";
 
-    //substring(Column str, int pos, int len)
-    public static Tuple<String, String> substring(String strColumn, int pos, int len, String valueName) {
+        String script = "";
         String name = "substring_" + random();
-        if (valueName == null) {
-            return new Tuple(name, "def " + name + " = doc['" + strColumn + "'].value.substring(" + pos + "," + len + ")");
-        } else {
-            return new Tuple(name, strColumn + ";def " + name + " = " + valueName + ".substring(" + pos + "," + len + ")");
-        }
+        Map<String, String> map = new HashMap<>();
+        map.put("RET", name);
+        map.put("POS", String.valueOf(pos));
 
+        if (valueName == null) {
+            map.put("COLUMN", strColumn);
+            if (pos > 0) {
+                script = Util.renderString(template_column, map);
+            } else if (pos < 0) {
+                script = Util.renderString(template_column_2, map);
+            } else {
+                script = Util.renderString("def ${RET} = null", map);
+            }
+        } else {
+            map.put("VALUE", valueName);
+            if (pos > 0) {
+                script = Util.renderString(template_value, map);
+            } else if (pos < 0) {
+                script = Util.renderString(template_value_2, map);
+            } else {
+                script = Util.renderString("def ${RET} = null", map);
+            }
+        }
+        return new Tuple(name, script);
+    }
+
+    public static Tuple<String, String> substring(String strColumn, int pos, int len, String valueName) {
+        // SELECT SUBSTRING('Quadratically',5,6);  => 'ratica';
+        // SELECT SUBSTRING('Sakila', -5, 3); => 'aki';
+        String template_column = "" +
+                "def str = doc['${COLUMN}'].value; if (str == null) return null; if(str == '') return '';" +
+                "def len = str.length(); def begin = ${POS} - 1; " +
+                "def end = begin + ${LEN}; if (end >= len) end = len; " +
+                "def ${RET} = str.substring(begin, end)";
+        String template_column_2 = "" +
+                "def str = doc['${COLUMN}'].value; if (str == null) return null; if(str == '') return '';" +
+                "def len = str.length(); def begin = ${POS} + len; " +
+                "def end = begin + ${LEN}; if (end >= len) end = len; " +
+                "def ${RET} = str.substring(begin, end)";
+        String template_value = "" +
+                "def str = ${VALUE}; if (str == null) return null; if(str == '') return ''; " +
+                "def len = str.length(); def begin =  ${POS} - 1; " +
+                "def end = begin + ${LEN}; if (end >= len) end = len; " +
+                "def ${RET} = str.substring(begin, end)";
+        String template_value_2 = "" +
+                "def str = ${VALUE}; if (str == null) return null; if(str == '') return ''; " +
+                "def len = str.length(); def begin =  ${POS} + len; " +
+                "def end = begin + ${LEN}; if (end >= len) end = len; " +
+                "def ${RET} = str.substring(begin, end)";
+
+        String script = "";
+        String name = "substring_" + random();
+        Map<String, String> map = new HashMap<>();
+        map.put("RET", name);
+        map.put("POS", String.valueOf(pos));
+        map.put("LEN", String.valueOf(len));
+
+        if (valueName == null) {
+            map.put("COLUMN", strColumn);
+            if (pos > 0) {
+                script = Util.renderString(template_column, map);
+            } else if (pos < 0) {
+                script = Util.renderString(template_column_2, map);
+            } else {
+                script = Util.renderString("def ${RET} = null", map);
+            }
+        } else {
+            map.put("VALUE", valueName);
+            if (pos > 0) {
+                script = Util.renderString(template_value, map);
+            } else if (pos < 0) {
+                script = Util.renderString(template_value_2, map);
+            } else {
+                script = Util.renderString("def ${RET} = null", map);
+            }
+        }
+        return new Tuple(name, script);
     }
 
     //split(Column str, java.lang.String pattern)

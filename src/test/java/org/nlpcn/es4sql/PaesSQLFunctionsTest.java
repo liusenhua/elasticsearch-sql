@@ -93,10 +93,10 @@ public class PaesSQLFunctionsTest {
     public void substring() throws Exception {
         String query = "SELECT address," +
                 "substring(address, 0) as substr_0," +
-                "substring(address, 1) as substr_1, " +
-                "substring(address, 1, 3) as substr_1_3," +
+                "substring(address, 5) as substr_5, " +
+                "substring(address, 5, 5) as substr_5_5," +
                 "substring(address, -3) as substr_-3, " +
-                "substring(address, -3, 3) as substr_-3_3" +
+                "substring(address, -3, 1) as substr_-3_1" +
                 " FROM " + TestsConstants.PAES_TEST_INDEX + "/account";
         printQuery(query);
         CSVResult csvResult = getCsvResult(false, query);
