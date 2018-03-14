@@ -65,40 +65,75 @@ public class PaesMainTestSuite {
     }
 
     private static void prepareAccountsIndex() {
-        String dataMapping = "{  \"account\": {" +
-                "\"dynamic_templates\": [\n" +
-                "        {\n" +
-                "          \"number\": {\n" +
-                "            \"match_mapping_type\": \"float\",\n" +
-                "            \"mapping\": {\n" +
-                "              \"type\": \"double\",\n" +
-                "              \"ignore_malformed\": true\n" +
+        String dataMapping = "{\n" +
+                "    \"account\": {\n" +
+                "        \"_all\": {\n" +
+                "            \"enabled\": false\n" +
+                "        },\n" +
+                "        \"dynamic_date_formats\": [\n" +
+                "            \"yyyy-MM-dd HH:mm:ss.SSS\",\n" +
+                "            \"yyyy/MM/dd\"\n" +
+                "        ],\n" +
+                "        \"dynamic_templates\": [\n" +
+                "            {\n" +
+                "                \"strings_as_keywords\": {\n" +
+                "                    \"match_mapping_type\": \"string\",\n" +
+                "                    \"mapping\": {\n" +
+                "                        \"type\": \"keyword\"\n" +
+                "                    }\n" +
+                "                }\n" +
                 "            }\n" +
-                "          }\n" +
-                "        }]," +
-                " \"properties\": {\n" +
-                "          \"gender\": {\n" +
-                "            \"type\": \"string\",\n" +
-                "            \"fielddata\": true\n" +
-                "          }," +
-                "          \"address\": {\n" +
-                "            \"type\": \"string\",\n" +
-                "            \"fielddata\": true\n" +
-                "          }," +
-                "          \"state\": {\n" +
-                "            \"type\": \"string\",\n" +
-                "            \"fielddata\": true\n" +
-                "          }," +
-                "          \"firstname\": {\n" +
-                "            \"type\": \"string\",\n" +
-                "            \"fielddata\": true\n" +
-                "          }," +
-                "          \"lastname\": {\n" +
-                "            \"type\": \"string\",\n" +
-                "            \"fielddata\": true\n" +
-                "          }" +
-                "       }"+
-                "   }" +
+                "        ],\n" +
+                "        \"date_detection\": true,\n" +
+                "        \"numeric_detection\": false,\n" +
+                "        \"properties\": {\n" +
+                "            \"account_number\": {\n" +
+                "                \"type\": \"long\"\n" +
+                "            },\n" +
+                "            \"address\": {\n" +
+                "                \"type\": \"keyword\"\n" +
+                "            },\n" +
+                "            \"age\": {\n" +
+                "                \"type\": \"long\"\n" +
+                "            },\n" +
+                "            \"balance\": {\n" +
+                "                \"type\": \"long\"\n" +
+                "            },\n" +
+                "            \"city\": {\n" +
+                "                \"type\": \"keyword\"\n" +
+                "            },\n" +
+                "            \"createTime\": {\n" +
+                "                \"type\": \"date\",\n" +
+                "                \"format\": \"yyyy-MM-dd HH:mm:ss.SSS\"\n" +
+                "            },\n" +
+                "            \"date_basic\": {\n" +
+                "                \"type\": \"date\",\n" +
+                "                \"format\": \"yyyyMMdd\"\n" +
+                "            },\n" +
+                "            \"date_custom\": {\n" +
+                "                \"type\": \"date\",\n" +
+                "                \"format\": \"yyyy/MM/dd\"\n" +
+                "            },\n" +
+                "            \"email\": {\n" +
+                "                \"type\": \"keyword\"\n" +
+                "            },\n" +
+                "            \"employer\": {\n" +
+                "                \"type\": \"keyword\"\n" +
+                "            },\n" +
+                "            \"firstname\": {\n" +
+                "                \"type\": \"keyword\"\n" +
+                "            },\n" +
+                "            \"gender\": {\n" +
+                "                \"type\": \"keyword\"\n" +
+                "            },\n" +
+                "            \"lastname\": {\n" +
+                "                \"type\": \"keyword\"\n" +
+                "            },\n" +
+                "            \"state\": {\n" +
+                "                \"type\": \"keyword\"\n" +
+                "            }\n" +
+                "        }\n" +
+                "    }\n" +
                 "}";
         client.admin().indices().preparePutMapping(PAES_TEST_INDEX).setType("account").setSource(dataMapping).execute().actionGet();
     }

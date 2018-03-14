@@ -32,13 +32,16 @@ public class PaesSQLFunctionsTest {
 
     @Test
     public void selectPaes() throws  Exception {
-        String query = "SELECT aum_edu,\n" +
-                "         ceil(((aum_edu))) as C701364119,\n" +
-                "         cust_no,ceil(((aum_edu))) as C310076827,\n" +
-                "         con_sex_mf,con_last_name,\n" +
-                "         ck_bal \n" +
-                "FROM n_custom  \n" +
-                "WHERE cust_no is not null ";
+        String query = "SELECT floor(2.5), trim(\" asdas\") from paes/account";
+        printQuery(query);
+        CSVResult csvResult = getCsvResult(false, query);
+        print(csvResult);
+    }
+
+    @Test
+    public void toDate() throws Exception {
+        String query = "SELECT createTime, date_custom, date_basic, to_date(createTime, 'yyyy-MM-dd HH:mm:ss.SSS') createTime_2, to_date(date_custom, 'yyyy/MM/dd') date_custom2, to_date(date_basic, 'yyyyMMdd') date_basic2" +
+                " FROM " + TestsConstants.PAES_TEST_INDEX + "/account";
         printQuery(query);
         CSVResult csvResult = getCsvResult(false, query);
         print(csvResult);

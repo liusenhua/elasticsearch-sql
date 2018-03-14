@@ -19,9 +19,9 @@ public class SQLFunctions {
     public final static Set<String> buildInFunctions = Sets.newHashSet(
             "exp", "ln", "log", "log10", "sqrt", "cbrt", "ceil", "floor", "rint", "pow", "round",
             "random", "abs", //nummber operator
-            "split", "concat_ws", "substring", "trim",//string operator
+            "split", "concat_ws", "substring", "substr", "trim",//string operator
             "add", "multiply", "divide", "subtract", "modulus",//binary operator
-            "field", "date_format"
+            "field", "to_date", "date_format"
     );
 
 
@@ -50,6 +50,12 @@ public class SQLFunctions {
 
                 break;
 
+            case "to_date":
+                functionStr = to_date(
+                        Util.expr2Object((SQLExpr) paramers.get(0).value).toString(),
+                        Util.expr2Object((SQLExpr) paramers.get(1).value).toString(),
+                        name);
+                break;
 
             case "date_format":
                 functionStr = date_format(
@@ -99,6 +105,7 @@ public class SQLFunctions {
                         name);
                 break;
 
+            case "substr":
             case "substring":
                 if (paramers.size() == 3) {
                     functionStr = substring(Util.expr2Object((SQLExpr) paramers.get(0).value).toString(),
@@ -189,13 +196,39 @@ public class SQLFunctions {
     private static Tuple<String, String> date_format(String strColumn, String pattern, String valueName) {
         String name = "date_format_" + random();
         if (valueName == null) {
-            return new Tuple<>(name, "def " + name + " = new SimpleDateFormat('" + pattern + "').format(new Date(doc['" + strColumn + "'].value - 8*1000*60*60))");
+            return new Tuple<>(name, "def " + name + " = new SimpleDateFormat('" + pattern + "').format(new Date(doc['" + strColumn + "'].value))");
         } else {
-            return new Tuple<>(name, strColumn + "; def " + name + " = new SimpleDateFormat('" + pattern + "').format(new Date(" + valueName + " - 8*1000*60*60))");
+            return new Tuple<>(name, strColumn + "; def " + name + " = new SimpleDateFormat('" + pattern + "').format(new Date(" + valueName + "))");
         }
-
     }
 
+    private static Tuple<String, String> to_date(String strColumn, String pattern, String valueName) {
+        String name = "to_date" + random();
+        String template_column = "" +
+                "def v = doc['${COLUMN}'].value; if (v == null || v == '' || v == 0) return null; " +
+                "Date d = (v instanceof String) ? new SimpleDateFormat('${PATTERN}').parse(v) : new Date(v); " +
+                "SimpleDateFormat sdf = new SimpleDateFormat(\"yyyy-MM-dd'T'HH:mm:ss.SSSXXX\"); " +
+                "def ${NAME} = sdf.format(d)";
+        String template_value = "" +
+                "def v = ${VALUE}; if (v == null || v == '') return null; " +
+                "Date d = new Date(v); if (d == null) d = new SimpleDateFormat('${PATTERN}').parse(v); " +
+                "SimpleDateFormat sdf = new SimpleDateFormat(\"yyyy-MM-dd'T'HH:mm:ss.SSSXXX\"); " +
+                "def ${NAME} = sdf.format(d)";
+
+        Map<String, String> map = new HashMap<>();
+        map.put("NAME", name);
+        map.put("PATTERN", pattern);
+
+        String script = "";
+        if (valueName == null) {
+            map.put("COLUMN", strColumn);
+            script = Util.renderString(template_column, map);
+        } else {
+            map.put("VALUE", valueName);
+            script = Util.renderString(template_value, map);
+        }
+        return new Tuple(name, script);
+    }
 
     public static Tuple<String, String> add(SQLExpr a, SQLExpr b) {
         return binaryOpertator("add", "+", a, b);

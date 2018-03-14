@@ -45,7 +45,7 @@ public class SQLFunctionsTest {
     @Test
     public void functionFieldAliasAndGroupByAlias() throws Exception {
         String query = "SELECT " +
-                "floor(substring(address,0,3)*20) as key," +
+                "floor(substring(address,1,3)*20) as key," +
                 "sum(age) cvalue FROM " + TestsConstants.TEST_INDEX + "/account where address is not null " +
                 "group by key order by cvalue desc limit 10  ";
         SearchDao searchDao = MainTestSuite.getSearchDao() != null ? MainTestSuite.getSearchDao() : getSearchDao();
@@ -63,7 +63,7 @@ public class SQLFunctionsTest {
     public void functionAlias() throws Exception {
         //here is a bug,if only script fields are included,then all fields will return; fix later
         String query = "SELECT " +
-                "substring(address,0,3) as key,address from " +
+                "substring(address,1,3) as key,address from " +
                 TestsConstants.TEST_INDEX + "/account where address is not null " +
                 "order by address desc limit 10  ";
 
