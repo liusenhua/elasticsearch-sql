@@ -246,7 +246,11 @@ public class FieldMaker {
                 } else if (SQLFunctions.buildInFunctions.contains(methodName)) {
                     //throw new SqlParseException("only support script/nested as inner functions");
                     MethodField abc = makeMethodField(methodName, mExpr.getParameters(), null, null, tableAlias, false);
-                    paramers.add(new KVValue(abc.getParams().get(0).toString(), new SQLCharExpr(abc.getParams().get(1).toString())));
+                    paramers.add(new KVValue(
+                            abc.getParams().get(0).toString(),
+                            new SQLCharExpr(abc.getParams().get(1).toString()),
+                            KVValue.ValueType.EVALUATED
+                    ));
                 } else throw new SqlParseException("only support script/nested/children as inner functions");
             } else if (object instanceof SQLCaseExpr) {
                 String scriptCode = new CaseWhenParser((SQLCaseExpr) object, alias, tableAlias).parse();

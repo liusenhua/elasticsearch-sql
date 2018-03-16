@@ -5,6 +5,7 @@ import com.alibaba.druid.sql.ast.expr.*;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+import com.sun.deploy.util.StringUtils;
 import org.elasticsearch.common.collect.Tuple;
 import org.nlpcn.es4sql.domain.KVValue;
 
@@ -24,6 +25,23 @@ public class SQLFunctions {
             "field", "to_date", "date_format"
     );
 
+    public final static String LOG_FUNCTION = "log";
+    public final static String LOG_FUNCTION_BODY = "" +
+            "double log(double base, double d) { " +
+            "  if (base <=0 || d <=0) return Float.NaN; " +
+            "  return Math.log(d)/Math.log(base); " +
+            "} " +
+            " " +
+            "double log(double d) { " +
+            "  return Math.log(d); " +
+            "}";
+
+    public final static Map<String, String> extendFunctions = new HashMap<>();
+    public static String extendFunctionScript;
+    static {
+        extendFunctions.put(LOG_FUNCTION, LOG_FUNCTION_BODY);
+        extendFunctionScript = StringUtils.join(extendFunctions.values(), "\n");
+    }
 
     public static Tuple<String, String> function(String methodName, List<KVValue> paramers, String name,boolean returnValue) {
         Tuple<String, String> functionStr = null;
@@ -72,19 +90,8 @@ public class SQLFunctions {
                 break;
 
             case "ln":
-                functionStr = log(paramers.get(0).value.toString(),
-                        name);
-                break;
-
             case "log":
-                if (paramers.size() == 2) {
-                    functionStr = log(paramers.get(0).value.toString(),
-                            paramers.get(1).value.toString(),
-                            name);
-                } else {
-                    functionStr = log(paramers.get(0).value.toString(),
-                            name);
-                }
+                functionStr = log(paramers);
                 break;
 
             case "log10":
@@ -150,7 +157,7 @@ public class SQLFunctions {
         if(returnValue){
             String generatedFieldName = functionStr.v1();
             String returnCommand = ";return " + generatedFieldName +";" ;
-            String newScript = functionStr.v2() + returnCommand;
+            String newScript = extendFunctionScript + " " + functionStr.v2() + returnCommand;
             functionStr = new Tuple<>(generatedFieldName, newScript);
         }
         return functionStr;
@@ -301,26 +308,40 @@ public class SQLFunctions {
 
     }
 
-    public static Tuple<String, String> log(String strColumn, String valueName) {
-        return log(null, strColumn, valueName);
+    private static String getValue(KVValue param) {
+        String value = Util.expr2Object((SQLExpr) param.value).toString();
+        if (param.valueType == KVValue.ValueType.EVALUATED) {
+            return param.key;
+        } else if (param.value instanceof SQLIdentifierExpr) {
+            return "doc['" + value + "'].value";
+        }else {
+            return value;
+        }
     }
 
-    public static Tuple<String, String> log(String base, String strColumn, String valueName) {
-        String methodName = "Math.log";
-        String name = "log_" + random();
-        if (base != null && base.trim() != "") {
-            name = "log_" + base.trim() + "_" + random();
-        }
+    public static Tuple<String, String> log(List<KVValue> paramers) {
+        String methodName = SQLFunctions.LOG_FUNCTION;
+        String name = methodName + "_" + random();
+        String template = "def ${RET} = ${FUNC}(${VALUE})";
+        String template2 = "def ${RET} = ${FUNC}(${BASE}, ${VALUE})";
 
+        Map<String, String> map = new HashMap<>();
+        map.put("FUNC", methodName);
+        map.put("RET", name);
         String script = "";
-        if (valueName == null) {
-            script = "def " + name + " = " + methodName + "(doc['" + strColumn + "'].value)";
-        } else {
-            script = strColumn + ";def " + name + " = " + methodName + "(" + valueName + ")";
+        if (paramers.size() == 1) {
+            map.put("VALUE", getValue(paramers.get(0)));
+            script = Util.renderString(template, map);
+        } else if (paramers.size() == 2) {
+            map.put("BASE", getValue(paramers.get(0)));
+            map.put("VALUE", getValue(paramers.get(1)));
+            script = Util.renderString(template2, map);
         }
 
-        if (base != null && base.trim() != "") {
-            script = script + "/" + methodName + "(" + base + ")";
+        for (KVValue p: paramers) {
+            if (p.valueType == KVValue.ValueType.EVALUATED) {
+                script = Util.expr2Object((SQLExpr) p.value).toString() + ";" + script;
+            }
         }
 
         return new Tuple<>(name, script);

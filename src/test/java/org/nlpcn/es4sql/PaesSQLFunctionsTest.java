@@ -31,6 +31,12 @@ public class PaesSQLFunctionsTest {
     }
 
     @Test
+    public void debug() {
+        double a = Math.log(-20);
+        System.out.println(a);
+    }
+
+    @Test
     public void selectPaes() throws  Exception {
         String query = "SELECT floor(2.5), trim(\" asdas\") from paes/account";
         printQuery(query);
@@ -50,6 +56,15 @@ public class PaesSQLFunctionsTest {
     @Test
     public void selectAllFunctions() throws Exception {
         String query = "SELECT *" +
+                " FROM " + TestsConstants.PAES_TEST_INDEX + "/account";
+        printQuery(query);
+        CSVResult csvResult = getCsvResult(false, query);
+        print(csvResult);
+    }
+
+    @Test
+    public void nestFunction() throws  Exception {
+        String query = "SELECT balance, abs(ln(log(2, ln(balance)))) as log_balance " +
                 " FROM " + TestsConstants.PAES_TEST_INDEX + "/account";
         printQuery(query);
         CSVResult csvResult = getCsvResult(false, query);
