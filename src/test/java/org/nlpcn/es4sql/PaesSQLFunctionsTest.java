@@ -37,8 +37,18 @@ public class PaesSQLFunctionsTest {
     }
 
     @Test
-    public void selectPaes() throws  Exception {
-        String query = "SELECT floor(2.5), trim(\" asdas\") from paes/account";
+    public void toDateToChar() throws Exception {
+        String query = "SELECT date_basic, to_date(date_basic, 'yyyyMMdd') date_basic2, to_char(to_date(date_basic, 'yyyyMMdd'), 'yyyy/MM/dd') date_basic3 " +
+                " FROM " + TestsConstants.PAES_TEST_INDEX + "/account";
+        printQuery(query);
+        CSVResult csvResult = getCsvResult(false, query);
+        print(csvResult);
+    }
+
+    @Test
+    public void toChar() throws  Exception {
+        String query = "SELECT createTime, date_custom, date_basic, to_char(createTime, 'yyyy_MM_dd') createTime2, to_char(date_custom, 'yyyy_MM_dd') as date_custom2, to_char(date_basic, 'yyyy_MM_dd') as date_basic2" +
+                " FROM " + TestsConstants.PAES_TEST_INDEX + "/account";
         printQuery(query);
         CSVResult csvResult = getCsvResult(false, query);
         print(csvResult);

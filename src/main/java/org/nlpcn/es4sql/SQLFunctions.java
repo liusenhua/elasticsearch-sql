@@ -22,7 +22,7 @@ public class SQLFunctions {
             "random", "abs", //nummber operator
             "split", "concat_ws", "substring", "substr", "trim",//string operator
             "add", "multiply", "divide", "subtract", "modulus",//binary operator
-            "field", "to_date", "date_format"
+            "field", "to_date", "date_format", "to_char"
     );
 
     public final static String LOG_FUNCTION = "log";
@@ -36,11 +36,31 @@ public class SQLFunctions {
             "  return Math.log(d); " +
             "}";
 
-    public final static Map<String, String> extendFunctions = new HashMap<>();
+    public final static String TO_DATE_FUNCTION = "to_date";
+    public final static String TO_DATE_FUNCTION_BODY = "" +
+            "Long to_date(Object o, String pattern) {" +
+            "   def v = o; if (v == null || v == '' || v == 0) return null; " +
+            "   Date d = (v instanceof String) ? new SimpleDateFormat(pattern).parse(v) : new Date(v); " +
+//            "   SimpleDateFormat sdf = new SimpleDateFormat(\"yyyy-MM-dd'T'HH:mm:ss.SSSXXX\"); " +
+//            "   return sdf.format(d);" +
+            "   return d.getTime();" +
+            "}";
+
+    public final static String TO_CHAR_FUNCTION = "to_char";
+    public final static String TO_CHAR_FUNCTION_BODY = "" +
+            "String to_char(Object o, String pattern) {" +
+            "    def v = o; if (v == null) return null;" +
+            "    if (v instanceof String) return (String)v;" +
+            "    return new SimpleDateFormat(pattern).format(new Date(v));" +
+            "}" ;
+
+    public final static Map<String, String> extendFunctions = new TreeMap<>();
     public static String extendFunctionScript;
     static {
         extendFunctions.put(LOG_FUNCTION, LOG_FUNCTION_BODY);
-        extendFunctionScript = StringUtils.join(extendFunctions.values(), "\n");
+        extendFunctions.put(TO_DATE_FUNCTION, TO_DATE_FUNCTION_BODY);
+        extendFunctions.put(TO_CHAR_FUNCTION, TO_CHAR_FUNCTION_BODY);
+        extendFunctionScript = StringUtils.join(extendFunctions.values(), " ");
     }
 
     public static Tuple<String, String> function(String methodName, List<KVValue> paramers, String name,boolean returnValue) {
@@ -69,17 +89,12 @@ public class SQLFunctions {
                 break;
 
             case "to_date":
-                functionStr = to_date(
-                        Util.expr2Object((SQLExpr) paramers.get(0).value).toString(),
-                        Util.expr2Object((SQLExpr) paramers.get(1).value).toString(),
-                        name);
+                functionStr = to_date(paramers);
                 break;
 
             case "date_format":
-                functionStr = date_format(
-                        Util.expr2Object((SQLExpr) paramers.get(0).value).toString(),
-                        Util.expr2Object((SQLExpr) paramers.get(1).value).toString(),
-                        name);
+            case "to_char":
+                functionStr = to_char(paramers);
                 break;
 
             case "pow":
@@ -200,43 +215,6 @@ public class SQLFunctions {
         return new Tuple<>(name, script);
     }
 
-    private static Tuple<String, String> date_format(String strColumn, String pattern, String valueName) {
-        String name = "date_format_" + random();
-        if (valueName == null) {
-            return new Tuple<>(name, "def " + name + " = new SimpleDateFormat('" + pattern + "').format(new Date(doc['" + strColumn + "'].value))");
-        } else {
-            return new Tuple<>(name, strColumn + "; def " + name + " = new SimpleDateFormat('" + pattern + "').format(new Date(" + valueName + "))");
-        }
-    }
-
-    private static Tuple<String, String> to_date(String strColumn, String pattern, String valueName) {
-        String name = "to_date" + random();
-        String template_column = "" +
-                "def v = doc['${COLUMN}'].value; if (v == null || v == '' || v == 0) return null; " +
-                "Date d = (v instanceof String) ? new SimpleDateFormat('${PATTERN}').parse(v) : new Date(v); " +
-                "SimpleDateFormat sdf = new SimpleDateFormat(\"yyyy-MM-dd'T'HH:mm:ss.SSSXXX\"); " +
-                "def ${NAME} = sdf.format(d)";
-        String template_value = "" +
-                "def v = ${VALUE}; if (v == null || v == '') return null; " +
-                "Date d = new Date(v); if (d == null) d = new SimpleDateFormat('${PATTERN}').parse(v); " +
-                "SimpleDateFormat sdf = new SimpleDateFormat(\"yyyy-MM-dd'T'HH:mm:ss.SSSXXX\"); " +
-                "def ${NAME} = sdf.format(d)";
-
-        Map<String, String> map = new HashMap<>();
-        map.put("NAME", name);
-        map.put("PATTERN", pattern);
-
-        String script = "";
-        if (valueName == null) {
-            map.put("COLUMN", strColumn);
-            script = Util.renderString(template_column, map);
-        } else {
-            map.put("VALUE", valueName);
-            script = Util.renderString(template_value, map);
-        }
-        return new Tuple(name, script);
-    }
-
     public static Tuple<String, String> add(SQLExpr a, SQLExpr b) {
         return binaryOpertator("add", "+", a, b);
     }
@@ -304,47 +282,22 @@ public class SQLFunctions {
 
             return " if( " + temp + " instanceof String) " + temp + "= Double.parseDouble(" + temp.trim() + "); ";
         } else return "";
-
-
     }
 
-    private static String getValue(KVValue param) {
-        String value = Util.expr2Object((SQLExpr) param.value).toString();
-        if (param.valueType == KVValue.ValueType.EVALUATED) {
-            return param.key;
-        } else if (param.value instanceof SQLIdentifierExpr) {
-            return "doc['" + value + "'].value";
-        }else {
-            return value;
+    public static Tuple<String, String> log(List<KVValue> parameters) {
+        if (parameters.size() == 2) {
+            return invoke(SQLFunctions.LOG_FUNCTION, parameters.get(0), parameters.get(1));
+        } else {
+            return invoke(SQLFunctions.LOG_FUNCTION, parameters.get(0));
         }
     }
 
-    public static Tuple<String, String> log(List<KVValue> paramers) {
-        String methodName = SQLFunctions.LOG_FUNCTION;
-        String name = methodName + "_" + random();
-        String template = "def ${RET} = ${FUNC}(${VALUE})";
-        String template2 = "def ${RET} = ${FUNC}(${BASE}, ${VALUE})";
+    public static Tuple<String, String> to_date(List<KVValue> parameters) {
+        return invoke(SQLFunctions.TO_DATE_FUNCTION, parameters.get(0), parameters.get(1));
+    }
 
-        Map<String, String> map = new HashMap<>();
-        map.put("FUNC", methodName);
-        map.put("RET", name);
-        String script = "";
-        if (paramers.size() == 1) {
-            map.put("VALUE", getValue(paramers.get(0)));
-            script = Util.renderString(template, map);
-        } else if (paramers.size() == 2) {
-            map.put("BASE", getValue(paramers.get(0)));
-            map.put("VALUE", getValue(paramers.get(1)));
-            script = Util.renderString(template2, map);
-        }
-
-        for (KVValue p: paramers) {
-            if (p.valueType == KVValue.ValueType.EVALUATED) {
-                script = Util.expr2Object((SQLExpr) p.value).toString() + ";" + script;
-            }
-        }
-
-        return new Tuple<>(name, script);
+    public static Tuple<String, String> to_char(List<KVValue> parameters) {
+        return invoke(SQLFunctions.TO_CHAR_FUNCTION, parameters.get(0), parameters.get(1));
     }
 
     public static Tuple<String, String> log10(String strColumn, String valueName) {
@@ -524,6 +477,92 @@ public class SQLFunctions {
             return new Tuple(name, strColumn + "; def " + name + " = " + valueName + ".split('" + pattern + "')");
         }
 
+    }
+
+    private static String getValue(KVValue param) {
+        String value = Util.expr2Object((SQLExpr) param.value, "'").toString();
+        if (param.valueType == KVValue.ValueType.EVALUATED) {
+            return param.key;
+        } else if (param.value instanceof SQLIdentifierExpr) {
+            return "doc['" + value + "'].value";
+        }else {
+            return value;
+        }
+    }
+
+    public static Tuple<String, String> invoke(String methodName) {
+        String name = methodName + "_" + random();
+        String template = "def ${RET} = ${FUNC}()";
+
+        Map<String, String> map = new HashMap<>();
+        map.put("FUNC", methodName);
+        map.put("RET", name);
+        String script = Util.renderString(template, map);;
+
+        return new Tuple<>(name, script);
+    }
+
+    public static Tuple<String, String> invoke(String methodName, KVValue arg1 ) {
+        String name = methodName + "_" + random();
+        String template = "def ${RET} = ${FUNC}(${ARG1})";
+
+        Map<String, String> map = new HashMap<>();
+        map.put("FUNC", methodName);
+        map.put("RET", name);
+        map.put("ARG1", getValue(arg1));
+        String script = Util.renderString(template, map);
+
+        List<KVValue> parameters = Arrays.asList(arg1);
+        for (KVValue p: parameters) {
+            if (p.valueType == KVValue.ValueType.EVALUATED) {
+                script = Util.expr2Object((SQLExpr) p.value).toString() + ";" + script;
+            }
+        }
+
+        return new Tuple<>(name, script);
+    }
+
+    public static Tuple<String, String> invoke(String methodName, KVValue arg1, KVValue arg2 ) {
+        String name = methodName + "_" + random();
+        String template = "def ${RET} = ${FUNC}(${ARG1}, ${ARG2})";
+
+        Map<String, String> map = new HashMap<>();
+        map.put("FUNC", methodName);
+        map.put("RET", name);
+        map.put("ARG1", getValue(arg1));
+        map.put("ARG2", getValue(arg2));
+        String script = Util.renderString(template, map);
+
+        List<KVValue> parameters = Arrays.asList(arg1, arg2);
+        for (KVValue p: parameters) {
+            if (p.valueType == KVValue.ValueType.EVALUATED) {
+                script = Util.expr2Object((SQLExpr) p.value).toString() + ";" + script;
+            }
+        }
+
+        return new Tuple<>(name, script);
+    }
+
+    public static Tuple<String, String> invoke(String methodName, KVValue arg1, KVValue arg2, KVValue arg3 ) {
+        String name = methodName + "_" + random();
+        String template = "def ${RET} = ${FUNC}(${ARG1}, ${ARG2}, ${ARG3})";
+
+        Map<String, String> map = new HashMap<>();
+        map.put("FUNC", methodName);
+        map.put("RET", name);
+        map.put("ARG1", getValue(arg1));
+        map.put("ARG2", getValue(arg2));
+        map.put("ARG2", getValue(arg3));
+        String script = Util.renderString(template, map);
+
+        List<KVValue> parameters = Arrays.asList(arg1, arg2, arg3);
+        for (KVValue p: parameters) {
+            if (p.valueType == KVValue.ValueType.EVALUATED) {
+                script = Util.expr2Object((SQLExpr) p.value).toString() + ";" + script;
+            }
+        }
+
+        return new Tuple<>(name, script);
     }
 
 
