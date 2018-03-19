@@ -5,7 +5,6 @@ import com.alibaba.druid.sql.ast.expr.*;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
-import com.sun.deploy.util.StringUtils;
 import org.elasticsearch.common.collect.Tuple;
 import org.nlpcn.es4sql.domain.KVValue;
 
@@ -22,7 +21,7 @@ public class SQLFunctions {
             "random", "abs", //nummber operator
             "split", "concat_ws", "substring", "substr", "trim",//string operator
             "add", "multiply", "divide", "subtract", "modulus",//binary operator
-            "field", "to_date", "date_format", "to_char"
+            "field", "to_date", "date_format", "to_char", "year", "month", "day"
     );
 
     public final static String LOG_FUNCTION = "log";
@@ -71,17 +70,52 @@ public class SQLFunctions {
             "   return str.substring(begin); " +
             " }";
 
+    public final static String YEAR_FUNCTION = "year";
+    public final static String YEAR_FUNCTION_BODY = "" +
+            "Long year(Object o) { " +
+            "    def v = o; if (v == null ) return null; " +
+            "    Date d = new Date(v); if (d == null) return null; " +
+            "    Calendar c = Calendar.getInstance(); " +
+            "    c.setTime(d); " +
+            "    int year = c.get(Calendar.YEAR); " +
+            "    return year; " +
+            "}";
+
+    public final static String MONTH_FUNCTION = "month";
+    public final static String MONTH_FUNCTION_BODY = "" +
+            "Long month(Object o) { " +
+            "    def v = o; if (v == null) return null; " +
+            "    Date d = new Date(v); if (d == null) return null; " +
+            "    Calendar c = Calendar.getInstance(); " +
+            "    c.setTime(d); " +
+            "    int month = c.get(Calendar.MONTH); " +
+            "    return month + 1; " +
+            "}";
+
+    public final static String DAY_FUNCTION = "day";
+    public final static String DAY_FUNCTION_BODY = "" +
+            "Long day(Object o) { " +
+            "    def v = o; if (v == null) return null; " +
+            "    Date d = new Date(v); if (d == null) return null; " +
+            "    Calendar c = Calendar.getInstance(); " +
+            "    c.setTime(d); " +
+            "    int day = c.get(Calendar.DAY_OF_MONTH); " +
+            "    return day; " +
+            "}";
+
+
     public final static Map<String, String> extendFunctions = new TreeMap<>();
-    public static String extendFunctionScript;
     static {
         extendFunctions.put(LOG_FUNCTION, LOG_FUNCTION_BODY);
         extendFunctions.put(TO_DATE_FUNCTION, TO_DATE_FUNCTION_BODY);
         extendFunctions.put(TO_CHAR_FUNCTION, TO_CHAR_FUNCTION_BODY);
         extendFunctions.put(SUBSTRING_FUNCTION, SUBSTRING_FUNCTION_BODY);
-        extendFunctionScript = StringUtils.join(extendFunctions.values(), " ");
+        extendFunctions.put(YEAR_FUNCTION, YEAR_FUNCTION_BODY);
+        extendFunctions.put(MONTH_FUNCTION, MONTH_FUNCTION_BODY);
+        extendFunctions.put(DAY_FUNCTION, DAY_FUNCTION_BODY);
     }
 
-    public static Tuple<String, String> function(String methodName, List<KVValue> paramers, String name,boolean returnValue) {
+    public static Tuple<String, String> function(String methodName, List<KVValue> paramers, String name,boolean returnValue, Set<String> functions) {
         Tuple<String, String> functionStr = null;
         switch (methodName) {
             case "split":
@@ -107,12 +141,24 @@ public class SQLFunctions {
                 break;
 
             case "to_date":
-                functionStr = to_date(paramers);
+                functionStr = to_date(paramers, functions);
                 break;
 
             case "date_format":
             case "to_char":
-                functionStr = to_char(paramers);
+                functionStr = to_char(paramers, functions);
+                break;
+
+            case "year":
+                functionStr = year(paramers, functions);
+                break;
+
+            case "month":
+                functionStr = month(paramers, functions);
+                break;
+
+            case "day":
+                functionStr = day(paramers, functions);
                 break;
 
             case "pow":
@@ -124,7 +170,7 @@ public class SQLFunctions {
 
             case "ln":
             case "log":
-                functionStr = log(paramers);
+                functionStr = log(paramers, functions);
                 break;
 
             case "log10":
@@ -147,7 +193,7 @@ public class SQLFunctions {
 
             case "substr":
             case "substring":
-                functionStr = substring(paramers);
+                functionStr = substring(paramers, functions);
                 break;
             case "trim":
                 functionStr = trim(Util.expr2Object((SQLExpr) paramers.get(0).value).toString(), name);
@@ -179,6 +225,18 @@ public class SQLFunctions {
 
         }
         if(returnValue){
+            String extendFunctionScript = "";
+            List<String> extendFunctionList = new ArrayList<>();
+            if (functions != null) {
+                for (String fun: functions) {
+                    if (extendFunctions.containsKey(fun)) {
+                        extendFunctionList.add(extendFunctions.get(fun));
+                    }
+                }
+                extendFunctionScript = Joiner.on(" ").join(extendFunctionList);
+                extendFunctionScript = extendFunctionScript.trim();
+            }
+
             String generatedFieldName = functionStr.v1();
             String returnCommand = ";return " + generatedFieldName +";" ;
             String newScript = extendFunctionScript + " " + functionStr.v2() + returnCommand;
@@ -293,7 +351,8 @@ public class SQLFunctions {
         } else return "";
     }
 
-    public static Tuple<String, String> log(List<KVValue> parameters) {
+    public static Tuple<String, String> log(List<KVValue> parameters, Set<String> functions) {
+        functions.add(SQLFunctions.LOG_FUNCTION);
         if (parameters.size() == 2) {
             return invoke(SQLFunctions.LOG_FUNCTION, parameters.get(0), parameters.get(1));
         } else {
@@ -301,12 +360,29 @@ public class SQLFunctions {
         }
     }
 
-    public static Tuple<String, String> to_date(List<KVValue> parameters) {
+    public static Tuple<String, String> to_date(List<KVValue> parameters, Set<String> functions) {
+        functions.add(SQLFunctions.TO_DATE_FUNCTION);
         return invoke(SQLFunctions.TO_DATE_FUNCTION, parameters.get(0), parameters.get(1));
     }
 
-    public static Tuple<String, String> to_char(List<KVValue> parameters) {
+    public static Tuple<String, String> to_char(List<KVValue> parameters, Set<String> functions) {
+        functions.add(SQLFunctions.TO_CHAR_FUNCTION);
         return invoke(SQLFunctions.TO_CHAR_FUNCTION, parameters.get(0), parameters.get(1));
+    }
+
+    public static Tuple<String, String> year(List<KVValue> parameters, Set<String> functions) {
+        functions.add(SQLFunctions.YEAR_FUNCTION);
+        return invoke(SQLFunctions.YEAR_FUNCTION, parameters.get(0));
+    }
+
+    public static Tuple<String, String> month(List<KVValue> parameters, Set<String> functions) {
+        functions.add(SQLFunctions.MONTH_FUNCTION);
+        return invoke(SQLFunctions.MONTH_FUNCTION, parameters.get(0));
+    }
+
+    public static Tuple<String, String> day(List<KVValue> parameters, Set<String> functions) {
+        functions.add(SQLFunctions.DAY_FUNCTION);
+        return invoke(SQLFunctions.DAY_FUNCTION, parameters.get(0));
     }
 
     public static Tuple<String, String> log10(String strColumn, String valueName) {
@@ -376,7 +452,8 @@ public class SQLFunctions {
 
     }
 
-    public static Tuple<String, String> substring(List<KVValue> parameters) {
+    public static Tuple<String, String> substring(List<KVValue> parameters, Set<String> functions) {
+        functions.add(SQLFunctions.SUBSTRING_FUNCTION);
         if (parameters.size() == 3) {
             return invoke(SQLFunctions.SUBSTRING_FUNCTION, parameters.get(0), parameters.get(1), parameters.get(2));
         } else {
@@ -399,7 +476,7 @@ public class SQLFunctions {
         String value = Util.expr2Object((SQLExpr) param.value, "'").toString();
         if (param.valueType == KVValue.ValueType.EVALUATED) {
             return param.key;
-        } else if (param.value instanceof SQLIdentifierExpr) {
+        } else if (isProperty((SQLExpr) param.value)) {
             return "doc['" + value + "'].value";
         }else {
             return value;

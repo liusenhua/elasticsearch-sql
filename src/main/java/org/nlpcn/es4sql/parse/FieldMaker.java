@@ -1,8 +1,6 @@
 package org.nlpcn.es4sql.parse;
 
-import java.util.ArrayList;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
 
 import com.alibaba.druid.sql.ast.expr.*;
 import com.google.common.collect.Lists;
@@ -198,6 +196,14 @@ public class FieldMaker {
     }
 
     public static MethodField makeMethodField(String name, List<SQLExpr> arguments, SQLAggregateOption option, String alias, String tableAlias, boolean first) throws SqlParseException {
+        Set<String> functions = null;
+        if (first) {
+            functions = new HashSet<>();
+        }
+        return makeMethodField(name, arguments, option, alias, tableAlias, first, functions);
+    }
+
+    public static MethodField makeMethodField(String name, List<SQLExpr> arguments, SQLAggregateOption option, String alias, String tableAlias, boolean first, Set<String> functions) throws SqlParseException {
         List<KVValue> paramers = new LinkedList<>();
         String finalMethodName = name;
 
@@ -209,7 +215,7 @@ public class FieldMaker {
 
                 if (SQLFunctions.buildInFunctions.contains(binaryOpExpr.getOperator().toString().toLowerCase())) {
                     SQLMethodInvokeExpr mExpr = makeBinaryMethodField(binaryOpExpr, alias, first);
-                    MethodField abc = makeMethodField(mExpr.getMethodName(), mExpr.getParameters(), null, null, tableAlias, false);
+                    MethodField abc = makeMethodField(mExpr.getMethodName(), mExpr.getParameters(), null, null, tableAlias, false, functions);
                     paramers.add(new KVValue(abc.getParams().get(0).toString(), new SQLCharExpr(abc.getParams().get(1).toString())));
                 } else {
                     if (!binaryOpExpr.getOperator().getName().equals("=")) {
@@ -225,7 +231,7 @@ public class FieldMaker {
                 SQLMethodInvokeExpr mExpr = (SQLMethodInvokeExpr) object;
                 String methodName = mExpr.getMethodName().toLowerCase();
                 if (methodName.equals("script")) {
-                    KVValue script = new KVValue("script", makeMethodField(mExpr.getMethodName(), mExpr.getParameters(), null, alias, tableAlias, true));
+                    KVValue script = new KVValue("script", makeMethodField(mExpr.getMethodName(), mExpr.getParameters(), null, alias, tableAlias, true, functions));
                     paramers.add(script);
                 } else if (methodName.equals("nested") || methodName.equals("reverse_nested")) {
                     NestedType nestedType = new NestedType();
@@ -245,7 +251,7 @@ public class FieldMaker {
                     paramers.add(new KVValue("children", childrenType));
                 } else if (SQLFunctions.buildInFunctions.contains(methodName)) {
                     //throw new SqlParseException("only support script/nested as inner functions");
-                    MethodField abc = makeMethodField(methodName, mExpr.getParameters(), null, null, tableAlias, false);
+                    MethodField abc = makeMethodField(methodName, mExpr.getParameters(), null, null, tableAlias, false, functions);
                     paramers.add(new KVValue(
                             abc.getParams().get(0).toString(),
                             new SQLCharExpr(abc.getParams().get(1).toString()),
@@ -268,7 +274,7 @@ public class FieldMaker {
             }
             //should check if field and first .
             Tuple<String, String> newFunctions = SQLFunctions.function(finalMethodName, paramers,
-                    paramers.get(0).key,first);
+                    paramers.get(0).key,first, functions);
             paramers.clear();
             if (!first) {
                 //variance

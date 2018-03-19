@@ -37,6 +37,18 @@ public class PaesSQLFunctionsTest {
     }
 
     @Test
+    public void dateFunctions() throws Exception {
+        String query = "SELECT " +
+                "year(createTime) as year, " +
+                "month(createTime) as month, " +
+                "day(createTime) as day, " +
+                "createTime FROM " + TestsConstants.PAES_TEST_INDEX + "/account";
+        printQuery(query);
+        CSVResult csvResult = getCsvResult(false, query);
+        print(csvResult);
+    }
+
+    @Test
     public void toDateToChar() throws Exception {
         String query = "SELECT date_basic, to_date(date_basic, 'yyyyMMdd') date_basic2, to_char(to_date(date_basic, 'yyyyMMdd'), 'yyyy/MM/dd') date_basic3 " +
                 " FROM " + TestsConstants.PAES_TEST_INDEX + "/account";
