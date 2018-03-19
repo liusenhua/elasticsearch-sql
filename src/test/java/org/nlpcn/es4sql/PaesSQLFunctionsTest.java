@@ -130,6 +130,16 @@ public class PaesSQLFunctionsTest {
     }
 
     @Test
+    public void concat() throws Exception {
+        String query = "SELECT firstname, lastname, " +
+                "concat('++', concat_ws('.', city, firstname, lastname), '=', gender, '--')," +
+                "gender FROM " + TestsConstants.PAES_TEST_INDEX + "/account";
+        printQuery(query);
+        CSVResult csvResult = getCsvResult(false, query);
+        print(csvResult);
+    }
+
+    @Test
     public void substring() throws Exception {
         String query = "SELECT address," +
                 "substring(address, 0) as substr_0," +

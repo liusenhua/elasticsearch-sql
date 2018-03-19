@@ -19,7 +19,7 @@ public class SQLFunctions {
     public final static Set<String> buildInFunctions = Sets.newHashSet(
             "exp", "ln", "log", "log10", "sqrt", "cbrt", "ceil", "floor", "rint", "pow", "round",
             "random", "abs", //nummber operator
-            "split", "concat_ws", "substring", "substr", "trim",//string operator
+            "split", "concat", "concat_ws", "substring", "substr", "trim",//string operator
             "add", "multiply", "divide", "subtract", "modulus",//binary operator
             "field", "to_date", "date_format", "to_char", "year", "month", "day"
     );
@@ -131,13 +131,12 @@ public class SQLFunctions {
 
                 break;
 
-            case "concat_ws":
-                List<SQLExpr> result = Lists.newArrayList();
-                for (int i = 1; i < paramers.size(); i++) {
-                    result.add((SQLExpr) paramers.get(i).value);
-                }
-                functionStr = concat_ws(paramers.get(0).value.toString(), result, name);
+            case "concat":
+                functionStr = concat_ws("", paramers);
+                break;
 
+            case "concat_ws":
+                functionStr = concat_ws(paramers.get(0).value.toString(), paramers.subList(1, paramers.size()));
                 break;
 
             case "to_date":
@@ -249,25 +248,28 @@ public class SQLFunctions {
         return Math.abs(new Random().nextInt()) + "";
     }
 
-    private static Tuple<String, String> concat_ws(String split, List<SQLExpr> columns, String valueName) {
+    private static Tuple<String, String> concat_ws(String split, List<KVValue> columns) {
         String name = "concat_ws_" + random();
         List<String> result = Lists.newArrayList();
-
-        for (SQLExpr column : columns) {
-            String strColumn = Util.expr2Object(column).toString();
-            if (strColumn.startsWith("def ")) {
-                result.add(strColumn);
-            } else if (isProperty(column)) {
-                result.add("doc['" + strColumn + "'].value");
-            } else {
-                result.add("'" + strColumn + "'");
-            }
-
+        for (KVValue column : columns) {
+            String strColumn = getValue(column);
+            result.add(strColumn);
         }
-        return new Tuple<>(name, "def " + name + " =" + Joiner.on("+ " + split + " +").join(result));
 
+        String sep = " + ";
+        if (split != "") {
+            sep = " + " + split + " + ";
+        }
+        String script = "def " + name + " = " + Joiner.on(sep).join(result);
+
+        for (KVValue p: columns) {
+            if (p.valueType == KVValue.ValueType.EVALUATED) {
+                script = Util.expr2Object((SQLExpr) p.value).toString() + ";" + script;
+            }
+        }
+
+        return new Tuple<>(name, script );
     }
-
 
     //split(Column str, java.lang.String pattern)
     public static Tuple<String, String> split(String strColumn, String pattern, int index, String valueName) {
