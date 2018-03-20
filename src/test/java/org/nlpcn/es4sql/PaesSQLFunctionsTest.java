@@ -212,7 +212,24 @@ public class PaesSQLFunctionsTest {
         CSVResult csvResult = getCsvResult(false, query);
         print(csvResult);
     }
-        @Test
+
+    @Test
+    public void roundFunction() throws Exception {
+        String query = "SELECT " +
+                "round(balance) as round, " +
+                "round(balance,1) as round_1, " +
+                "round(balance,2) as round_2, " +
+                "round(balance,3) as round_3, " +
+                "round(balance,4) as round_4, " +
+                "round(balance,5) as round_5, " +
+                "balance " +
+                "FROM " + TestsConstants.PAES_TEST_INDEX + "/account order by account_number limit 1000 offset 0 ";
+        printQuery(query);
+        CSVResult csvResult = getCsvResult(false, query);
+        print(csvResult);
+    }
+
+    @Test
     public void numberFunctions() throws Exception {
         String query = "SELECT " +
                 "floor(balance) as floor_balance, " +

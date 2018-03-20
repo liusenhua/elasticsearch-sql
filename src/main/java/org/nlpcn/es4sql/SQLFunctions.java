@@ -24,6 +24,20 @@ public class SQLFunctions {
             "field", "to_date", "date_format", "to_char", "year", "month", "day"
     );
 
+    public final static String ROUND_FUNCTION = "round";
+    public final static String ROUND_FUNCTION_BODY = "" +
+            "Object round(Object o) { " +
+            "  def d = o; if (d == null) return null; " +
+            "  return Math.round(Double.valueOf(d));" +
+            "}" +
+            " " +
+            "Double round(Object o, int decimals) { " +
+            "  def d = o; if (d == null || decimals < 0) return null; " +
+            "  BigDecimal bd = BigDecimal.valueOf(d); " +
+            "  double ret = bd.setScale(decimals, RoundingMode.HALF_UP).doubleValue(); " +
+            "  return ret; " +
+            "}";
+
     public final static String LOG_FUNCTION = "log";
     public final static String LOG_FUNCTION_BODY = "" +
             "double log(double base, double d) { " +
@@ -103,9 +117,9 @@ public class SQLFunctions {
             "    return day; " +
             "}";
 
-
     public final static Map<String, String> extendFunctions = new TreeMap<>();
     static {
+        extendFunctions.put(ROUND_FUNCTION, ROUND_FUNCTION_BODY);
         extendFunctions.put(LOG_FUNCTION, LOG_FUNCTION_BODY);
         extendFunctions.put(TO_DATE_FUNCTION, TO_DATE_FUNCTION_BODY);
         extendFunctions.put(TO_CHAR_FUNCTION, TO_CHAR_FUNCTION_BODY);
@@ -167,6 +181,10 @@ public class SQLFunctions {
                         name);
                 break;
 
+            case "round":
+                functionStr = round(paramers, functions);
+                break;
+
             case "ln":
             case "log":
                 functionStr = log(paramers, functions);
@@ -177,7 +195,6 @@ public class SQLFunctions {
                 break;
 
             case "floor":
-            case "round":
             case "ceil":
             case "cbrt":
             case "rint":
@@ -351,6 +368,15 @@ public class SQLFunctions {
 
             return " if( " + temp + " instanceof String) " + temp + "= Double.parseDouble(" + temp.trim() + "); ";
         } else return "";
+    }
+
+    public static Tuple<String, String> round(List<KVValue> parameters, Set<String> functions) {
+        functions.add(SQLFunctions.ROUND_FUNCTION);
+        if (parameters.size() == 2) {
+            return invoke(SQLFunctions.ROUND_FUNCTION, parameters.get(0), parameters.get(1));
+        } else {
+            return invoke(SQLFunctions.ROUND_FUNCTION, parameters.get(0));
+        }
     }
 
     public static Tuple<String, String> log(List<KVValue> parameters, Set<String> functions) {
