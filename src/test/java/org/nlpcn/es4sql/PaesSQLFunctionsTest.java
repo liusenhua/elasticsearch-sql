@@ -164,7 +164,7 @@ public class PaesSQLFunctionsTest {
 
     @Test
     public void countFunctions() throws Exception {
-        String query = "SELECT count(gender) " +
+        String query = "SELECT count(lastname) " +
                 "FROM " + TestsConstants.PAES_TEST_INDEX + "/account";
         printQuery(query);
         CSVResult csvResult = getCsvResult(false, query);
