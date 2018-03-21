@@ -21,7 +21,7 @@ public class SQLFunctions {
             "random", "abs", //nummber operator
             "split", "concat", "concat_ws", "substring", "substr", "trim",//string operator
             "add", "multiply", "divide", "subtract", "modulus",//binary operator
-            "field", "to_date", "date_format", "to_char", "year", "month", "day"
+            "field", "to_date", "date_format", "to_char", "year", "month", "day", "quarter", "week"
     );
 
     public final static String ROUND_FUNCTION = "round";
@@ -106,6 +106,17 @@ public class SQLFunctions {
             "    return month + 1; " +
             "}";
 
+    public final static String WEEK_FUNCTION = "week";
+    public final static String WEEK_FUNCTION_BODY = "" +
+            "Long week(Object o) { " +
+            "    def v = o; if (v == null) return null; " +
+            "    Date d = new Date(v); if (d == null) return null; " +
+            "    Calendar c = Calendar.getInstance(); " +
+            "    c.setTime(d); " +
+            "    int week = c.get(Calendar.WEEK_OF_YEAR); " +
+            "    return week; " +
+            "}";
+
     public final static String DAY_FUNCTION = "day";
     public final static String DAY_FUNCTION_BODY = "" +
             "Long day(Object o) { " +
@@ -117,6 +128,23 @@ public class SQLFunctions {
             "    return day; " +
             "}";
 
+    public final static String QUARTER_FUNCTION = "quarter";
+    public final static String QUARTER_FUNCTION_BODY = "" +
+            "Integer quarter(Object o) {\n" +
+            "    def v = o; if (v == null) return null;\n" +
+            "    Date d = new Date(v); if (d == null) return null;  \n" +
+            "    Calendar c = Calendar.getInstance();  \n" +
+            "    c.setTime(d);\n" +
+            " " +
+            "    int month = c.get(Calendar.MONTH);\n" +
+            "    if (month == Calendar.JANUARY || month == Calendar.FEBRUARY || month == Calendar.MARCH) return 1;\n" +
+            "    else if (month == Calendar.APRIL || month == Calendar.MAY || month == Calendar.JUNE) return 2;\n" +
+            "    else if (month == Calendar.JULY || month == Calendar.AUGUST || month == Calendar.SEPTEMBER) return 3;\n" +
+            "    else if (month == Calendar.OCTOBER || month == Calendar.NOVEMBER || month == Calendar.DECEMBER) return 4;\n" +
+            "\n" +
+            "    return null;  \n" +
+            "}";
+
     public final static Map<String, String> extendFunctions = new TreeMap<>();
     static {
         extendFunctions.put(ROUND_FUNCTION, ROUND_FUNCTION_BODY);
@@ -126,7 +154,9 @@ public class SQLFunctions {
         extendFunctions.put(SUBSTRING_FUNCTION, SUBSTRING_FUNCTION_BODY);
         extendFunctions.put(YEAR_FUNCTION, YEAR_FUNCTION_BODY);
         extendFunctions.put(MONTH_FUNCTION, MONTH_FUNCTION_BODY);
+        extendFunctions.put(WEEK_FUNCTION, WEEK_FUNCTION_BODY);
         extendFunctions.put(DAY_FUNCTION, DAY_FUNCTION_BODY);
+        extendFunctions.put(QUARTER_FUNCTION, QUARTER_FUNCTION_BODY);
     }
 
     public static Tuple<String, String> function(String methodName, List<KVValue> paramers, String name,boolean returnValue, Set<String> functions) {
@@ -170,8 +200,16 @@ public class SQLFunctions {
                 functionStr = month(paramers, functions);
                 break;
 
+            case "week":
+                functionStr = week(paramers, functions);
+                break;
+
             case "day":
                 functionStr = day(paramers, functions);
+                break;
+
+            case "quarter":
+                functionStr = quarter(paramers, functions);
                 break;
 
             case "pow":
@@ -408,9 +446,19 @@ public class SQLFunctions {
         return invoke(SQLFunctions.MONTH_FUNCTION, parameters.get(0));
     }
 
+    public static Tuple<String, String> week(List<KVValue> parameters, Set<String> functions) {
+        functions.add(SQLFunctions.WEEK_FUNCTION);
+        return invoke(SQLFunctions.WEEK_FUNCTION, parameters.get(0));
+    }
+
     public static Tuple<String, String> day(List<KVValue> parameters, Set<String> functions) {
         functions.add(SQLFunctions.DAY_FUNCTION);
         return invoke(SQLFunctions.DAY_FUNCTION, parameters.get(0));
+    }
+
+    public static Tuple<String, String> quarter(List<KVValue> parameters, Set<String> functions) {
+        functions.add(SQLFunctions.QUARTER_FUNCTION);
+        return invoke(SQLFunctions.QUARTER_FUNCTION, parameters.get(0));
     }
 
     public static Tuple<String, String> log10(String strColumn, String valueName) {

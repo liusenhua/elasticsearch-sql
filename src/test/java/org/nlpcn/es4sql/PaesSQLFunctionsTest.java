@@ -31,9 +31,14 @@ public class PaesSQLFunctionsTest {
     }
 
     @Test
-    public void debug() {
-        double a = Math.log(-20);
-        System.out.println(a);
+    public void debug() throws Exception {
+//        double a = Math.log(-20);
+//        System.out.println(a);
+//        String query = "SELECT max_amt_cur_month, field(max_amt_cur_month), ceil(((max_amt_cur_month))) as ceil, abs(max_amt_cur_month) as abs FROM custom  \n" +
+//                "WHERE cardhold_city_name IS NOT NULL AND cust_no is not null limit 0 , 50";
+//        printQuery(query);
+//        CSVResult csvResult = getCsvResult(false, query);
+//        print(csvResult);
     }
 
     @Test
@@ -41,7 +46,9 @@ public class PaesSQLFunctionsTest {
         String query = "SELECT " +
                 "year(createTime) as year, " +
                 "month(createTime) as month, " +
+                "week(createTime) as week, " +
                 "day(createTime) as day, " +
+                "quarter(createTime) as quarter, " +
                 "createTime FROM " + TestsConstants.PAES_TEST_INDEX + "/account";
         printQuery(query);
         CSVResult csvResult = getCsvResult(false, query);
