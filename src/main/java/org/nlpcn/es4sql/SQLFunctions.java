@@ -2,6 +2,7 @@ package org.nlpcn.es4sql;
 
 import com.alibaba.druid.sql.ast.SQLExpr;
 import com.alibaba.druid.sql.ast.expr.*;
+import com.alibaba.druid.util.StringUtils;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
@@ -21,7 +22,8 @@ public class SQLFunctions {
             "random", "abs", //nummber operator
             "split", "concat", "concat_ws", "substring", "substr", "trim",//string operator
             "add", "multiply", "divide", "subtract", "modulus",//binary operator
-            "field", "to_date", "date_format", "to_char", "year", "month", "day", "quarter", "week"
+            "field", "to_date", "date_format", "to_char",
+            "year", "month", "day", "quarter", "week", "now", "today"
     );
 
     public final static String ROUND_FUNCTION = "round";
@@ -145,6 +147,24 @@ public class SQLFunctions {
             "    return null;  \n" +
             "}";
 
+    public final static String NOW_FUNCTION = "now";
+    public final static String NOW_FUNCTION_BODY = "" +
+            "Long now() { " +
+            "    return new Date().getTime();" +
+            "}";
+
+    public final static String TODAY_FUNCTION = "today";
+    public final static String TODAY_FUNCTION_BODY = "" +
+            "Long today() { " +
+            "    Calendar todayStart = Calendar.getInstance(); " +
+            "    todayStart.set(Calendar.HOUR_OF_DAY, 0); " +
+            "    todayStart.set(Calendar.MINUTE, 0); " +
+            "    todayStart.set(Calendar.SECOND, 0); " +
+            "    todayStart.set(Calendar.MILLISECOND, 0); " +
+            "    Date today = todayStart.getTime(); " +
+            "    return today.getTime(); " +
+            "}";
+
     public final static Map<String, String> extendFunctions = new TreeMap<>();
     static {
         extendFunctions.put(ROUND_FUNCTION, ROUND_FUNCTION_BODY);
@@ -157,20 +177,22 @@ public class SQLFunctions {
         extendFunctions.put(WEEK_FUNCTION, WEEK_FUNCTION_BODY);
         extendFunctions.put(DAY_FUNCTION, DAY_FUNCTION_BODY);
         extendFunctions.put(QUARTER_FUNCTION, QUARTER_FUNCTION_BODY);
+        extendFunctions.put(NOW_FUNCTION, NOW_FUNCTION_BODY);
+        extendFunctions.put(TODAY_FUNCTION, TODAY_FUNCTION_BODY);
     }
 
-    public static Tuple<String, String> function(String methodName, List<KVValue> paramers, String name,boolean returnValue, Set<String> functions) {
+    public static Tuple<String, String> function(String methodName, List<KVValue> paramers, boolean returnValue, Set<String> functions) {
         Tuple<String, String> functionStr = null;
         switch (methodName) {
             case "split":
                 if (paramers.size() == 3) {
                     functionStr = split(Util.expr2Object((SQLExpr) paramers.get(0).value).toString(),
                             Util.expr2Object((SQLExpr) paramers.get(1).value).toString(),
-                            Integer.parseInt(Util.expr2Object((SQLExpr) paramers.get(2).value).toString()), name);
+                            Integer.parseInt(Util.expr2Object((SQLExpr) paramers.get(2).value).toString()), paramers.get(0).key);
                 } else {
                     functionStr = split(paramers.get(0).value.toString(),
                             paramers.get(1).value.toString(),
-                            name);
+                            paramers.get(0).key);
                 }
 
                 break;
@@ -212,11 +234,19 @@ public class SQLFunctions {
                 functionStr = quarter(paramers, functions);
                 break;
 
+            case "now":
+                functionStr = now(paramers, functions);
+                break;
+
+            case "today":
+                functionStr = today(paramers, functions);
+                break;
+
             case "pow":
                 functionStr = pow(
                         Util.expr2Object((SQLExpr) paramers.get(0).value).toString(),
                         Util.expr2Object((SQLExpr) paramers.get(1).value).toString(),
-                        name);
+                        paramers.get(0).key);
                 break;
 
             case "round":
@@ -229,7 +259,7 @@ public class SQLFunctions {
                 break;
 
             case "log10":
-                functionStr = log10(Util.expr2Object((SQLExpr) paramers.get(0).value).toString(), name);
+                functionStr = log10(Util.expr2Object((SQLExpr) paramers.get(0).value).toString(), paramers.get(0).key);
                 break;
 
             case "floor":
@@ -242,7 +272,7 @@ public class SQLFunctions {
                 functionStr = mathSingleValueTemplate("Math."+methodName,
                         methodName,
                         Util.expr2Object((SQLExpr) paramers.get(0).value).toString(),
-                        name);
+                        paramers.get(0).key);
                 break;
 
             case "substr":
@@ -250,7 +280,7 @@ public class SQLFunctions {
                 functionStr = substring(paramers, functions);
                 break;
             case "trim":
-                functionStr = trim(Util.expr2Object((SQLExpr) paramers.get(0).value).toString(), name);
+                functionStr = trim(Util.expr2Object((SQLExpr) paramers.get(0).value).toString(), paramers.get(0).key);
                 break;
 
             case "add":
@@ -459,6 +489,16 @@ public class SQLFunctions {
     public static Tuple<String, String> quarter(List<KVValue> parameters, Set<String> functions) {
         functions.add(SQLFunctions.QUARTER_FUNCTION);
         return invoke(SQLFunctions.QUARTER_FUNCTION, parameters.get(0));
+    }
+
+    public static Tuple<String, String> now(List<KVValue> parameters, Set<String> functions) {
+        functions.add(SQLFunctions.NOW_FUNCTION);
+        return invoke(SQLFunctions.NOW_FUNCTION);
+    }
+
+    public static Tuple<String, String> today(List<KVValue> parameters, Set<String> functions) {
+        functions.add(SQLFunctions.TODAY_FUNCTION);
+        return invoke(SQLFunctions.TODAY_FUNCTION);
     }
 
     public static Tuple<String, String> log10(String strColumn, String valueName) {

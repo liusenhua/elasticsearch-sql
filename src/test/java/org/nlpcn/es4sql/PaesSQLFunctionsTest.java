@@ -16,6 +16,8 @@ import org.nlpcn.es4sql.query.QueryAction;
 
 import java.net.UnknownHostException;
 import java.sql.SQLFeatureNotSupportedException;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.List;
 
 /**
@@ -39,6 +41,26 @@ public class PaesSQLFunctionsTest {
 //        printQuery(query);
 //        CSVResult csvResult = getCsvResult(false, query);
 //        print(csvResult);
+    }
+
+    @Test
+    public void nest() throws Exception {
+        String query = "SELECT * from (SELECT * from paes/account WHERE gender = 'F') T";
+        printQuery(query);
+        CSVResult csvResult = getCsvResult(false, query);
+        print(csvResult);
+    }
+
+    @Test
+    public void todayFunctions() throws Exception {
+        String query = "SELECT " +
+                "now() now, today() today, " +
+                "to_char(now(), 'yyyy-MM-dd HH:mm:ss.SSS') as now2, " +
+                "to_char(today(), 'yyyy-MM-dd HH:mm:ss.SSS') as today2 " +
+                "FROM " + TestsConstants.PAES_TEST_INDEX + "/account";
+        printQuery(query);
+        CSVResult csvResult = getCsvResult(false, query);
+        print(csvResult);
     }
 
     @Test

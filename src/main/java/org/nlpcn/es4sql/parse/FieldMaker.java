@@ -273,8 +273,7 @@ public class FieldMaker {
                 alias = "field_" + SQLFunctions.random();//paramers.get(0).value.toString();
             }
             //should check if field and first .
-            Tuple<String, String> newFunctions = SQLFunctions.function(finalMethodName, paramers,
-                    paramers.get(0).key,first, functions);
+            Tuple<String, String> newFunctions = SQLFunctions.function(finalMethodName, paramers, first, functions);
             paramers.clear();
             if (!first) {
                 //variance
