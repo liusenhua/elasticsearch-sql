@@ -1,5 +1,6 @@
 package org.nlpcn.es4sql;
 
+import com.alibaba.druid.util.StringUtils;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.plugin.nlpcn.QueryActionElasticExecutor;
@@ -41,6 +42,24 @@ public class PaesSQLFunctionsTest {
 //        printQuery(query);
 //        CSVResult csvResult = getCsvResult(false, query);
 //        print(csvResult);
+    }
+
+    @Test
+    public void caseWhen() throws Exception {
+        String query = "SELECT gender, CASE when (gender) = 'M' THEN '男' ELSE '女' END as sex " +
+                "FROM " + TestsConstants.PAES_TEST_INDEX + "/account";
+        printQuery(query);
+        CSVResult csvResult = getCsvResult(false, query);
+        print(csvResult);
+    }
+
+    @Test
+    public void caseWhenNest() throws Exception {
+        String query = "SELECT gender, concat(CASE WHEN gender = 'M' THEN 'Mr' ELSE 'Mis' END, '.', firstname) as name " +
+                "FROM " + TestsConstants.PAES_TEST_INDEX + "/account";
+        printQuery(query);
+        CSVResult csvResult = getCsvResult(false, query);
+        print(csvResult);
     }
 
     @Test

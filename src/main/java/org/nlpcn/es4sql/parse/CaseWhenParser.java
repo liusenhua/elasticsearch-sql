@@ -42,21 +42,29 @@ public class CaseWhenParser {
                 scriptCode = scriptCode.substring(3);
             }
             if (result.size() == 0) {
-                result.add("if(" + scriptCode + ")" + "{" + Util.getScriptValueWithQuote(item.getValueExpr(), "'") + "}");
+                result.add("if(" + scriptCode + ")" + "{" + returnWrapper(Util.getScriptValueWithQuote(item.getValueExpr(), "'")) + "}");
             } else {
-                result.add("else if(" + scriptCode + ")" + "{" + Util.getScriptValueWithQuote(item.getValueExpr(), "'") + "}");
+                result.add("else if(" + scriptCode + ")" + "{" + returnWrapper(Util.getScriptValueWithQuote(item.getValueExpr(), "'")) + "}");
             }
 
         }
         SQLExpr elseExpr = caseExpr.getElseExpr();
         if (elseExpr == null) {
-            result.add("else { null }");
+            result.add("else {" +  returnNull() + "}");
         } else {
-            result.add("else {" + Util.getScriptValueWithQuote(elseExpr, "'") + "}");
+            result.add("else {" + returnWrapper(Util.getScriptValueWithQuote(elseExpr, "'")) + "}");
         }
 
 
         return Joiner.on(" ").join(result);
+    }
+
+    private String returnNull() {
+        return "return null;";
+    }
+
+    private String returnWrapper(Object statement) {
+        return "return " + statement.toString() + ";";
     }
 
     public String explain(Where where) throws SqlParseException {

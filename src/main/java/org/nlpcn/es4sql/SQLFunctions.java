@@ -23,7 +23,8 @@ public class SQLFunctions {
             "split", "concat", "concat_ws", "substring", "substr", "trim",//string operator
             "add", "multiply", "divide", "subtract", "modulus",//binary operator
             "field", "to_date", "date_format", "to_char",
-            "year", "month", "day", "quarter", "week", "now", "today"
+            "year", "month", "day", "quarter", "week", "now", "today",
+            "eval" // to support evaluate test-case expression
     );
 
     public final static String ROUND_FUNCTION = "round";
@@ -181,7 +182,7 @@ public class SQLFunctions {
         extendFunctions.put(TODAY_FUNCTION, TODAY_FUNCTION_BODY);
     }
 
-    public static Tuple<String, String> function(String methodName, List<KVValue> paramers, boolean returnValue, Set<String> functions) {
+    public static Tuple<String, String> function(String methodName, List<KVValue> paramers, boolean returnValue, Map<String, String> functions) {
         Tuple<String, String> functionStr = null;
         switch (methodName) {
             case "split":
@@ -305,19 +306,17 @@ public class SQLFunctions {
                 functionStr = field(Util.expr2Object((SQLExpr) paramers.get(0).value).toString());
                 break;
 
+            case "eval":
+                functionStr = eval(Util.expr2Object((SQLExpr) paramers.get(0).value).toString(), functions);
+                break;
+
             default:
 
         }
         if(returnValue){
             String extendFunctionScript = "";
-            List<String> extendFunctionList = new ArrayList<>();
             if (functions != null) {
-                for (String fun: functions) {
-                    if (extendFunctions.containsKey(fun)) {
-                        extendFunctionList.add(extendFunctions.get(fun));
-                    }
-                }
-                extendFunctionScript = Joiner.on(" ").join(extendFunctionList);
+                extendFunctionScript = Joiner.on(" ").join(functions.values());
                 extendFunctionScript = extendFunctionScript.trim();
             }
 
@@ -382,6 +381,14 @@ public class SQLFunctions {
         return new Tuple<>(name, "def " + name + " = " + "doc['" + a + "'].value");
     }
 
+    public static Tuple<String, String> eval(String a, Map<String, String> functions) {
+        String name = "eval_" + random();
+        String func = "func_" + random();
+        String func_body = "def " + func + "(def doc) { " + a + " }";
+        define(func, func_body, functions);
+        return new Tuple<>(name, "def " + name + " = " + func + "(doc)");
+    }
+
     private static Tuple<String, String> subtract(SQLExpr a, SQLExpr b) {
         return binaryOpertator("subtract", "-", a, b);
     }
@@ -438,8 +445,8 @@ public class SQLFunctions {
         } else return "";
     }
 
-    public static Tuple<String, String> round(List<KVValue> parameters, Set<String> functions) {
-        functions.add(SQLFunctions.ROUND_FUNCTION);
+    public static Tuple<String, String> round(List<KVValue> parameters, Map<String, String> functions) {
+        define(SQLFunctions.ROUND_FUNCTION, functions);
         if (parameters.size() == 2) {
             return invoke(SQLFunctions.ROUND_FUNCTION, parameters.get(0), parameters.get(1));
         } else {
@@ -447,8 +454,8 @@ public class SQLFunctions {
         }
     }
 
-    public static Tuple<String, String> log(List<KVValue> parameters, Set<String> functions) {
-        functions.add(SQLFunctions.LOG_FUNCTION);
+    public static Tuple<String, String> log(List<KVValue> parameters, Map<String, String> functions) {
+        define(SQLFunctions.LOG_FUNCTION, functions);
         if (parameters.size() == 2) {
             return invoke(SQLFunctions.LOG_FUNCTION, parameters.get(0), parameters.get(1));
         } else {
@@ -456,48 +463,48 @@ public class SQLFunctions {
         }
     }
 
-    public static Tuple<String, String> to_date(List<KVValue> parameters, Set<String> functions) {
-        functions.add(SQLFunctions.TO_DATE_FUNCTION);
+    public static Tuple<String, String> to_date(List<KVValue> parameters, Map<String, String> functions) {
+        define(SQLFunctions.TO_DATE_FUNCTION, functions);
         return invoke(SQLFunctions.TO_DATE_FUNCTION, parameters.get(0), parameters.get(1));
     }
 
-    public static Tuple<String, String> to_char(List<KVValue> parameters, Set<String> functions) {
-        functions.add(SQLFunctions.TO_CHAR_FUNCTION);
+    public static Tuple<String, String> to_char(List<KVValue> parameters, Map<String, String> functions) {
+        define(SQLFunctions.TO_CHAR_FUNCTION, functions);
         return invoke(SQLFunctions.TO_CHAR_FUNCTION, parameters.get(0), parameters.get(1));
     }
 
-    public static Tuple<String, String> year(List<KVValue> parameters, Set<String> functions) {
-        functions.add(SQLFunctions.YEAR_FUNCTION);
+    public static Tuple<String, String> year(List<KVValue> parameters, Map<String, String> functions) {
+        define(SQLFunctions.YEAR_FUNCTION, functions);
         return invoke(SQLFunctions.YEAR_FUNCTION, parameters.get(0));
     }
 
-    public static Tuple<String, String> month(List<KVValue> parameters, Set<String> functions) {
-        functions.add(SQLFunctions.MONTH_FUNCTION);
+    public static Tuple<String, String> month(List<KVValue> parameters, Map<String, String> functions) {
+        define(SQLFunctions.MONTH_FUNCTION, functions);
         return invoke(SQLFunctions.MONTH_FUNCTION, parameters.get(0));
     }
 
-    public static Tuple<String, String> week(List<KVValue> parameters, Set<String> functions) {
-        functions.add(SQLFunctions.WEEK_FUNCTION);
+    public static Tuple<String, String> week(List<KVValue> parameters, Map<String, String> functions) {
+        define(SQLFunctions.WEEK_FUNCTION, functions);
         return invoke(SQLFunctions.WEEK_FUNCTION, parameters.get(0));
     }
 
-    public static Tuple<String, String> day(List<KVValue> parameters, Set<String> functions) {
-        functions.add(SQLFunctions.DAY_FUNCTION);
+    public static Tuple<String, String> day(List<KVValue> parameters, Map<String, String> functions) {
+        define(SQLFunctions.DAY_FUNCTION, functions);
         return invoke(SQLFunctions.DAY_FUNCTION, parameters.get(0));
     }
 
-    public static Tuple<String, String> quarter(List<KVValue> parameters, Set<String> functions) {
-        functions.add(SQLFunctions.QUARTER_FUNCTION);
+    public static Tuple<String, String> quarter(List<KVValue> parameters, Map<String, String> functions) {
+        define(SQLFunctions.QUARTER_FUNCTION, functions);
         return invoke(SQLFunctions.QUARTER_FUNCTION, parameters.get(0));
     }
 
-    public static Tuple<String, String> now(List<KVValue> parameters, Set<String> functions) {
-        functions.add(SQLFunctions.NOW_FUNCTION);
+    public static Tuple<String, String> now(List<KVValue> parameters, Map<String, String> functions) {
+        define(SQLFunctions.NOW_FUNCTION, functions);
         return invoke(SQLFunctions.NOW_FUNCTION);
     }
 
-    public static Tuple<String, String> today(List<KVValue> parameters, Set<String> functions) {
-        functions.add(SQLFunctions.TODAY_FUNCTION);
+    public static Tuple<String, String> today(List<KVValue> parameters, Map<String, String> functions) {
+        define(SQLFunctions.TODAY_FUNCTION, functions);
         return invoke(SQLFunctions.TODAY_FUNCTION);
     }
 
@@ -568,8 +575,8 @@ public class SQLFunctions {
 
     }
 
-    public static Tuple<String, String> substring(List<KVValue> parameters, Set<String> functions) {
-        functions.add(SQLFunctions.SUBSTRING_FUNCTION);
+    public static Tuple<String, String> substring(List<KVValue> parameters, Map<String, String> functions) {
+        define(SQLFunctions.SUBSTRING_FUNCTION, functions);
         if (parameters.size() == 3) {
             return invoke(SQLFunctions.SUBSTRING_FUNCTION, parameters.get(0), parameters.get(1), parameters.get(2));
         } else {
@@ -596,6 +603,18 @@ public class SQLFunctions {
             return "doc['" + value + "'].value";
         }else {
             return value;
+        }
+    }
+
+    private static void define(String func, Map<String, String> functions) {
+        if (extendFunctions.containsKey(func) && !functions.containsKey(func)) {
+            functions.put(func, extendFunctions.get(func));
+        }
+    }
+
+    private static void define(String func, String body, Map<String, String> functions) {
+        if (!StringUtils.isEmpty(body)) {
+            functions.put(func, body);
         }
     }
 
