@@ -45,6 +45,42 @@ public class PaesSQLFunctionsTest {
     }
 
     @Test
+    public void aggWithNestFunc() throws Exception {
+        String query = "SELECT sum(pow(age, 2)) as sum_pow " +
+                "FROM " + TestsConstants.PAES_TEST_INDEX + "/account";
+        printQuery(query);
+        CSVResult csvResult = getCsvResult(false, query);
+        print(csvResult);
+    }
+
+    @Test
+    public void aggWithCaseWhen() throws Exception {
+        String query = "SELECT sum(CASE when (gender) = 'M' THEN 1 ELSE 0 END) as sum_1, sum(CASE when (gender) = 'M' THEN 0 ELSE 1 END) as sum_2 " +
+                "FROM " + TestsConstants.PAES_TEST_INDEX + "/account";
+        printQuery(query);
+        CSVResult csvResult = getCsvResult(false, query);
+        print(csvResult);
+    }
+
+    @Test
+    public void aggWithOperationBefore() throws Exception {
+        String query = "SELECT min(age * 3 + 1) as min" +
+                " FROM " + TestsConstants.PAES_TEST_INDEX + "/account";
+        printQuery(query);
+        CSVResult csvResult = getCsvResult(false, query);
+        print(csvResult);
+    }
+
+    @Test
+    public void aggWithOperationAfter() throws Exception {
+        String query = "SELECT min(age) min_age, max(age) max_age, max(age) -  min(age) " +
+                "FROM " + TestsConstants.PAES_TEST_INDEX + "/account";
+        printQuery(query);
+        CSVResult csvResult = getCsvResult(false, query);
+        print(csvResult);
+    }
+
+    @Test
     public void caseWhen() throws Exception {
         String query = "SELECT gender, CASE when (gender) = 'M' THEN '男' ELSE '女' END as sex " +
                 "FROM " + TestsConstants.PAES_TEST_INDEX + "/account";
@@ -135,15 +171,6 @@ public class PaesSQLFunctionsTest {
     @Test
     public void nestFunction() throws  Exception {
         String query = "SELECT balance, abs(ln(log(2, ln(balance)))) as log_balance " +
-                " FROM " + TestsConstants.PAES_TEST_INDEX + "/account";
-        printQuery(query);
-        CSVResult csvResult = getCsvResult(false, query);
-        print(csvResult);
-    }
-
-    @Test
-    public void operationNestInAggFunction() throws Exception {
-        String query = "SELECT balance, age, min(age*3+1) as ret" +
                 " FROM " + TestsConstants.PAES_TEST_INDEX + "/account";
         printQuery(query);
         CSVResult csvResult = getCsvResult(false, query);

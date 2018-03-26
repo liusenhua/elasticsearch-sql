@@ -158,6 +158,8 @@ public class AggMaker {
 
         } else if (kvValue.key != null && kvValue.value.toString().trim().startsWith("def")) {
             return builder.script(new Script(kvValue.value.toString()));
+        } else if (kvValue.key != null && kvValue.valueType == KVValue.ValueType.EVALUATED ) { // script expression
+            return builder.script(new Script(kvValue.value.toString()));
         } else if (kvValue.key != null && (kvValue.key.equals("nested") || kvValue.key.equals("reverse_nested"))) {
             NestedType nestedType = (NestedType) kvValue.value;
 

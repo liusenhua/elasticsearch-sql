@@ -7,10 +7,7 @@ import com.google.common.collect.Lists;
 import org.elasticsearch.common.collect.Tuple;
 import org.nlpcn.es4sql.SQLFunctions;
 import org.nlpcn.es4sql.Util;
-import org.nlpcn.es4sql.domain.Field;
-import org.nlpcn.es4sql.domain.KVValue;
-import org.nlpcn.es4sql.domain.MethodField;
-import org.nlpcn.es4sql.domain.Where;
+import org.nlpcn.es4sql.domain.*;
 import org.nlpcn.es4sql.exception.SqlParseException;
 import com.alibaba.druid.sql.ast.*;
 
@@ -214,7 +211,7 @@ public class FieldMaker {
 
                 if (SQLFunctions.buildInFunctions.contains(binaryOpExpr.getOperator().toString().toLowerCase())) {
                     SQLMethodInvokeExpr mExpr = makeBinaryMethodField(binaryOpExpr, alias, first);
-                    MethodField abc = makeMethodField(mExpr.getMethodName(), mExpr.getParameters(), null, null, tableAlias, false, functions);
+                    MethodField abc = makeMethodField(mExpr.getMethodName(), mExpr.getParameters(), null, null, tableAlias, Select.isAggFunction(finalMethodName), functions);
                     paramers.add(new KVValue(abc.getParams().get(0).toString(), new SQLCharExpr(abc.getParams().get(1).toString())));
                 } else {
                     if (!binaryOpExpr.getOperator().getName().equals("=")) {
@@ -250,7 +247,7 @@ public class FieldMaker {
                     paramers.add(new KVValue("children", childrenType));
                 } else if (SQLFunctions.buildInFunctions.contains(methodName)) {
                     //throw new SqlParseException("only support script/nested as inner functions");
-                    MethodField abc = makeMethodField(methodName, mExpr.getParameters(), null, null, tableAlias, false, functions);
+                    MethodField abc = makeMethodField(methodName, mExpr.getParameters(), null, null, tableAlias, Select.isAggFunction(finalMethodName), functions);
                     paramers.add(new KVValue(
                             abc.getParams().get(0).toString(),
                             new SQLCharExpr(abc.getParams().get(1).toString()),
@@ -261,7 +258,7 @@ public class FieldMaker {
                 String scriptCode = new CaseWhenParser((SQLCaseExpr) object, alias, tableAlias).parse();
                 SQLMethodInvokeExpr mExpr = new SQLMethodInvokeExpr("eval", null);
                 mExpr.addParameter(new SQLCharExpr(scriptCode));
-                MethodField abc = makeMethodField(mExpr.getMethodName(), mExpr.getParameters(), null, null, tableAlias, false, functions);
+                MethodField abc = makeMethodField(mExpr.getMethodName(), mExpr.getParameters(), null, null, tableAlias, Select.isAggFunction(finalMethodName), functions);
                 paramers.add(new KVValue(
                         abc.getParams().get(0).toString(),
                         new SQLCharExpr(abc.getParams().get(1).toString()),
@@ -295,8 +292,8 @@ public class FieldMaker {
             List<KVValue> tempParamers = new LinkedList<>();
             for (KVValue temp : paramers) {
                 if (temp.value instanceof SQLExpr)
-                    tempParamers.add(new KVValue(temp.key, Util.expr2Object((SQLExpr) temp.value)));
-                else tempParamers.add(new KVValue(temp.key, temp.value));
+                    tempParamers.add(new KVValue(temp.key, Util.expr2Object((SQLExpr) temp.value), temp.valueType));
+                else tempParamers.add(new KVValue(temp.key, temp.value, temp.valueType));
             }
             paramers.clear();
             paramers.addAll(tempParamers);
