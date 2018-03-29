@@ -367,6 +367,20 @@ public class MainTestSuite {
     }
 
 	public static SearchDao getSearchDao() {
+    	if (searchDao != null) {
+			return searchDao;
+		}
+
+		try {
+			Settings settings = Settings.builder().put("client.transport.ignore_cluster_name", true).build();
+
+			client = new PreBuiltTransportClient(settings).
+					addTransportAddress(getTransportAddress());
+			searchDao = new SearchDao(client);
+
+		} catch (Exception e) {
+
+		}
 		return searchDao;
 	}
 

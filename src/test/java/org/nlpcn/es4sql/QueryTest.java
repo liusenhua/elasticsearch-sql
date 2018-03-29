@@ -915,6 +915,7 @@ public class QueryTest {
     private SearchHits query(String query) throws SqlParseException, SQLFeatureNotSupportedException, SQLFeatureNotSupportedException {
         SearchDao searchDao = MainTestSuite.getSearchDao();
         SqlElasticSearchRequestBuilder select = (SqlElasticSearchRequestBuilder) searchDao.explain(query).explain();
+        System.out.println(select.explain());
         return ((SearchResponse)select.get()).getHits();
     }
 

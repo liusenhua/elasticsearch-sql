@@ -35,13 +35,12 @@ public class PaesSQLFunctionsTest {
 
     @Test
     public void debug() throws Exception {
-//        double a = Math.log(-20);
-//        System.out.println(a);
-//        String query = "SELECT max_amt_cur_month, field(max_amt_cur_month), ceil(((max_amt_cur_month))) as ceil, abs(max_amt_cur_month) as abs FROM custom  \n" +
-//                "WHERE cardhold_city_name IS NOT NULL AND cust_no is not null limit 0 , 50";
-//        printQuery(query);
-//        CSVResult csvResult = getCsvResult(false, query);
-//        print(csvResult);
+//        String query = "SELECT log(2, CASE  when ((sex1)) <= (0) THEN null ELSE ((sex1)) END) as C2117434807 from custom " +
+//                "WHERE cardhold_city_name IS NOT NULL AND cust_no is not null   limit 0 , 51";
+        String query = "SELECT insert_time FROM paes/account WHERE date_custom BETWEEN '2014/08/18' AND '2017/08/21' LIMIT 3";
+        printQuery(query);
+        CSVResult csvResult = getCsvResult(false, query);
+        print(csvResult);
     }
 
     @Test
@@ -73,8 +72,26 @@ public class PaesSQLFunctionsTest {
 
     @Test
     public void aggWithOperationAfter() throws Exception {
-        String query = "SELECT min(age) min_age, max(age) max_age, max(age) -  min(age) " +
+        String query = "SELECT floor(abs(age)+2) -  ceil(age) - avg(age) " +
                 "FROM " + TestsConstants.PAES_TEST_INDEX + "/account";
+        printQuery(query);
+        CSVResult csvResult = getCsvResult(false, query);
+        print(csvResult);
+    }
+
+    @Test
+    public void aggWithOperationAfter2() throws Exception {
+        String query = "SELECT min(age) as min1, min(age) as min2, max(age) " +
+                "FROM " + TestsConstants.PAES_TEST_INDEX + "/account";
+        printQuery(query);
+        CSVResult csvResult = getCsvResult(false, query);
+        print(csvResult);
+    }
+
+    @Test
+    public void aggWithOperationAfter3() throws Exception {
+        String query = "SELECT min(abs(age)) + max(age) " +
+                "FROM " + TestsConstants.PAES_TEST_INDEX + "/account group by gender";
         printQuery(query);
         CSVResult csvResult = getCsvResult(false, query);
         print(csvResult);
@@ -188,7 +205,7 @@ public class PaesSQLFunctionsTest {
 
     @Test
     public void operation() throws Exception {
-        String query = "SELECT balance+((2-2)*2/2+10)*10 as ret" +
+        String query = "SELECT balance, balance+((2-2)*2/2+10)*10 as ret" +
                 " FROM " + TestsConstants.PAES_TEST_INDEX + "/account";
         printQuery(query);
         CSVResult csvResult = getCsvResult(false, query);

@@ -13,6 +13,8 @@ import java.util.*;
 
 /**
  * Created by allwefantasy on 8/19/16.
+ *
+ * Updated by liusenhua in 2018/03
  */
 public class SQLFunctions {
 
@@ -285,21 +287,21 @@ public class SQLFunctions {
                 break;
 
             case "add":
-                functionStr = add((SQLExpr) paramers.get(0).value, (SQLExpr) paramers.get(1).value);
+                functionStr = add(paramers.get(0), paramers.get(1));
                 break;
 
             case "subtract":
-                functionStr = subtract((SQLExpr) paramers.get(0).value, (SQLExpr) paramers.get(1).value);
+                functionStr = subtract(paramers.get(0), paramers.get(1));
                 break;
             case "divide":
-                functionStr = divide((SQLExpr) paramers.get(0).value, (SQLExpr) paramers.get(1).value);
+                functionStr = divide(paramers.get(0), paramers.get(1));
                 break;
 
             case "multiply":
-                functionStr = multiply((SQLExpr) paramers.get(0).value, (SQLExpr) paramers.get(1).value);
+                functionStr = multiply(paramers.get(0), paramers.get(1));
                 break;
             case "modulus":
-                functionStr = modulus((SQLExpr) paramers.get(0).value, (SQLExpr) paramers.get(1).value);
+                functionStr = modulus(paramers.get(0), paramers.get(1));
                 break;
 
             case "field":
@@ -368,14 +370,6 @@ public class SQLFunctions {
         return new Tuple<>(name, script);
     }
 
-    public static Tuple<String, String> add(SQLExpr a, SQLExpr b) {
-        return binaryOpertator("add", "+", a, b);
-    }
-
-    private static Tuple<String, String> modulus(SQLExpr a, SQLExpr b) {
-        return binaryOpertator("modulus", "%", a, b);
-    }
-
     public static Tuple<String, String> field(String a) {
         String name = "field_" + random();
         return new Tuple<>(name, "def " + name + " = " + "doc['" + a + "'].value");
@@ -389,60 +383,71 @@ public class SQLFunctions {
         return new Tuple<>(name, "def " + name + " = " + func + "(doc)");
     }
 
-    private static Tuple<String, String> subtract(SQLExpr a, SQLExpr b) {
+    public static Tuple<String, String> add(KVValue a, KVValue b) {
+        return binaryOpertator("add", "+", a, b);
+    }
+
+    private static Tuple<String, String> modulus(KVValue a, KVValue b) {
+        return binaryOpertator("modulus", "%", a, b);
+    }
+
+    private static Tuple<String, String> subtract(KVValue a, KVValue b) {
         return binaryOpertator("subtract", "-", a, b);
     }
 
-    private static Tuple<String, String> multiply(SQLExpr a, SQLExpr b) {
+    private static Tuple<String, String> multiply(KVValue a, KVValue b) {
         return binaryOpertator("multiply", "*", a, b);
     }
 
-    private static Tuple<String, String> divide(SQLExpr a, SQLExpr b) {
+    private static Tuple<String, String> divide(KVValue a, KVValue b) {
         return binaryOpertator("divide", "/", a, b);
     }
 
-    private static Tuple<String, String> binaryOpertator(String methodName, String operator, SQLExpr a, SQLExpr b) {
-
+    private static Tuple<String, String> binaryOpertator(String methodName, String operator, KVValue a, KVValue b) {
         String name = methodName + "_" + random();
-        return new Tuple<>(name,
-                scriptDeclare(a) + scriptDeclare(b) +
-                        convertType(a) + convertType(b) +
-                        " def " + name + " = " + extractName(a) + " " + operator + " " + extractName(b) ) ;
+        //String template = "def ${RET} = null; if (${ARG1} != null && ${ARG2} != null) { ${RET} = ${ARG1} ${OP} ${ARG2}; }";
+        String template = "def ${RET} = ${ARG1} ${OP} ${ARG2}";
+
+        Map<String, String> map = new HashMap<>();
+        map.put("RET", name);
+        map.put("OP", operator);
+        map.put("ARG1", getValue(a));
+        map.put("ARG2", getValue(b));
+        String script = Util.renderString(template, map);
+
+        String evaluateScript = "";
+        List<KVValue> parameters = Arrays.asList(a, b);
+        for (KVValue p: parameters) {
+            if (p.valueType == KVValue.ValueType.EVALUATED) {
+                String str = Util.expr2Object((SQLExpr) p.value).toString();
+                if (!StringUtils.isEmpty(str)) {
+                    evaluateScript = evaluateScript +  "; " + str;
+                }
+            }
+            String str2 = convertType(p);
+            if (!StringUtils.isEmpty(str2)) {
+                evaluateScript = evaluateScript +  "; " + str2;
+            }
+        }
+
+        if (evaluateScript != "") {
+            script = evaluateScript.substring(1) + "; " + script; // trim the ";'
+        }
+
+        return new Tuple<>(name, script);
+    }
+
+    private static String convertType(KVValue param) {
+        if (param.valueType == KVValue.ValueType.REFERENCE || param.valueType == KVValue.ValueType.REFERENCE) {
+            //for now ,if variant is string,then change to double.
+            String temp = param.key;
+
+            return " if( " + temp + " instanceof String) " + temp + "= Double.parseDouble(" + temp.trim() + "); ";
+        } else return "";
     }
 
     private static boolean isProperty(SQLExpr expr) {
         return (expr instanceof SQLIdentifierExpr || expr instanceof SQLPropertyExpr || expr instanceof SQLVariantRefExpr);
-    }
-
-    private static String scriptDeclare(SQLExpr a) {
-
-        if (isProperty(a) || a instanceof SQLNumericLiteralExpr)
-            return "";
-        else return Util.expr2Object(a).toString() + ";";
-    }
-
-    private static String extractName(SQLExpr script) {
-        if (isProperty(script)) return "doc['" + script + "'].value";
-        String scriptStr = Util.expr2Object(script).toString();
-        String[] variance = scriptStr.split(";");
-        String newScript = variance[variance.length - 1];
-        if (newScript.trim().startsWith("def ")) {
-            //for now ,if variant is string,then change to double.
-            return newScript.trim().substring(4).split("=")[0].trim();
-        } else return scriptStr;
-    }
-
-    //cast(year as int)
-
-    private static String convertType(SQLExpr script) {
-        String[] variance = Util.expr2Object(script).toString().split(";");
-        String newScript = variance[variance.length - 1];
-        if (newScript.trim().startsWith("def ")) {
-            //for now ,if variant is string,then change to double.
-            String temp = newScript.trim().substring(4).split("=")[0].trim();
-
-            return " if( " + temp + " instanceof String) " + temp + "= Double.parseDouble(" + temp.trim() + "); ";
-        } else return "";
     }
 
     public static Tuple<String, String> round(List<KVValue> parameters, Map<String, String> functions) {
@@ -597,7 +602,8 @@ public class SQLFunctions {
 
     private static String getValue(KVValue param) {
         String value = Util.expr2Object((SQLExpr) param.value, "'").toString();
-        if (param.valueType == KVValue.ValueType.EVALUATED) {
+        if (param.valueType == KVValue.ValueType.EVALUATED ||
+                param.valueType == KVValue.ValueType.REFERENCE ) {
             return param.key;
         } else if (isProperty((SQLExpr) param.value)) {
             return "doc['" + value + "'].value";

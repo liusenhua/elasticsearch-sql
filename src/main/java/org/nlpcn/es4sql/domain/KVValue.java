@@ -2,7 +2,7 @@ package org.nlpcn.es4sql.domain;
 
 public class KVValue implements Cloneable {
     public enum ValueType {
-        VALUE, EVALUATED
+        VALUE, EVALUATED, REFERENCE
     }
     public String key;
     public Object value;

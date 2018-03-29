@@ -1,5 +1,6 @@
 package org.nlpcn.es4sql.domain;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -15,11 +16,16 @@ import org.nlpcn.es4sql.Util;
 public class MethodField extends Field {
 	private List<KVValue> params = null;
 	private String option;
+	private List<Field> reference = null; // The pipeline aggregation field reference other agg fields.
 
-	public MethodField(String name, List<KVValue> params, String option, String alias) {
+    public MethodField(String name, List<KVValue> params, String option, String alias) {
+        this(name, params, option, alias, null);
+    }
+	public MethodField(String name, List<KVValue> params, String option, String alias, List<Field> reference) {
 		super(name, alias);
 		this.params = params;
 		this.option = option;
+		this.reference = reference;
 		if (alias==null||alias.trim().length()==0) {
             Map<String, Object> paramsAsMap = this.getParamsAsMap();
             if(paramsAsMap.containsKey("alias")){
@@ -93,5 +99,16 @@ public class MethodField extends Field {
         if(!this.isChildren()) return null;
 
         return this.getParamsAsMap().get("children").toString();
+    }
+
+    public void addReference(Field field) {
+        if (reference == null) {
+            reference = new ArrayList<Field>();
+        }
+        reference.add(field);
+    }
+
+    public List<Field> getReference() {
+        return  reference;
     }
 }

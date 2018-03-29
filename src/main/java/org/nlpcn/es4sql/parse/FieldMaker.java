@@ -24,7 +24,8 @@ public class FieldMaker {
             throw new SqlParseException("unknow field name : " + expr);
         } else if (expr instanceof SQLBinaryOpExpr) {
             //make a SCRIPT method field;
-            return makeField(makeBinaryMethodField((SQLBinaryOpExpr) expr, alias, true), alias, tableAlias);
+            SQLMethodInvokeExpr mExpr = makeBinaryMethodField((SQLBinaryOpExpr) expr, alias, true);
+            return makeField(mExpr, alias, tableAlias);
 
         } else if (expr instanceof SQLAllColumnExpr) {
             return new Field("*", null);
@@ -202,7 +203,7 @@ public class FieldMaker {
     public static MethodField makeMethodField(String name, List<SQLExpr> arguments, SQLAggregateOption option, String alias, String tableAlias, boolean first, Map<String, String> functions) throws SqlParseException {
         List<KVValue> paramers = new LinkedList<>();
         String finalMethodName = name;
-
+        List<Field> reference = new ArrayList<>();
         for (SQLExpr object : arguments) {
 
             if (object instanceof SQLBinaryOpExpr) {
@@ -212,7 +213,7 @@ public class FieldMaker {
                 if (SQLFunctions.buildInFunctions.contains(binaryOpExpr.getOperator().toString().toLowerCase())) {
                     SQLMethodInvokeExpr mExpr = makeBinaryMethodField(binaryOpExpr, alias, first);
                     MethodField abc = makeMethodField(mExpr.getMethodName(), mExpr.getParameters(), null, null, tableAlias, Select.isAggFunction(finalMethodName), functions);
-                    paramers.add(new KVValue(abc.getParams().get(0).toString(), new SQLCharExpr(abc.getParams().get(1).toString())));
+                    paramers.add(new KVValue(abc.getParams().get(0).toString(), new SQLCharExpr(abc.getParams().get(1).toString()), KVValue.ValueType.EVALUATED));
                 } else {
                     if (!binaryOpExpr.getOperator().getName().equals("=")) {
                         paramers.add(new KVValue("script", makeScriptMethodField(binaryOpExpr, null, tableAlias)));
@@ -264,6 +265,18 @@ public class FieldMaker {
                         new SQLCharExpr(abc.getParams().get(1).toString()),
                         KVValue.ValueType.EVALUATED
                 ));
+            } else if (object instanceof SQLAggregateExpr) {
+                SQLAggregateExpr mExpr = (SQLAggregateExpr) object;
+                String methodName = mExpr.getMethodName();
+                MethodField abc = makeMethodField(methodName, mExpr.getArguments(), null, null, tableAlias, true, functions);
+                reference.add(abc);
+                String path = abc.getAlias();
+                String refValue = "params." + path.trim();
+                paramers.add(new KVValue(
+                        refValue,
+                        new SQLCharExpr(path),
+                        KVValue.ValueType.REFERENCE
+                ));
             } else {
                 paramers.add(new KVValue(Util.removeTableAilasFromField(object, tableAlias)));
             }
@@ -288,6 +301,13 @@ public class FieldMaker {
             paramers.add(new KVValue(newFunctions.v2()));
             finalMethodName = "script";
         }
+
+        if (Select.isAggFunction(finalMethodName)) {
+            if (alias == null && first) {
+                alias = finalMethodName.toLowerCase() + "_" + SQLFunctions.random();//paramers.get(0).value.toString();
+            }
+        }
+
         if (first) {
             List<KVValue> tempParamers = new LinkedList<>();
             for (KVValue temp : paramers) {
@@ -299,6 +319,6 @@ public class FieldMaker {
             paramers.addAll(tempParamers);
         }
 
-        return new MethodField(finalMethodName, paramers, option == null ? null : option.name(), alias);
+        return new MethodField(finalMethodName, paramers, option == null ? null : option.name(), alias, reference);
     }
 }
