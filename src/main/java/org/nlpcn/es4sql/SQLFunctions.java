@@ -25,7 +25,7 @@ public class SQLFunctions {
             "split", "concat", "concat_ws", "substring", "substr", "trim", "instr", "replace",  //string operator
             "add", "multiply", "divide", "subtract", "modulus",//binary operator
             "field", "to_date", "date_format", "to_char",
-            "year", "month", "day", "quarter", "week", "now", "today",
+            "year", "month", "day", "quarter", "week", "now", "today", "date_add", "date_diff", "date_part",
             "eval" // to support evaluate test-case expression
     );
 
@@ -122,7 +122,7 @@ public class SQLFunctions {
     public final static String YEAR_FUNCTION = "year";
     public final static String YEAR_FUNCTION_BODY = "" +
             "Long year(Object o) { " +
-            "    def v = o; if (v == null ) return null; " +
+            "    def v = o; if (v == null || v == 0L) return null; " +
             "    Date d = new Date(v); if (d == null) return null; " +
             "    Calendar c = Calendar.getInstance(); " +
             "    c.setTime(d); " +
@@ -133,7 +133,7 @@ public class SQLFunctions {
     public final static String MONTH_FUNCTION = "month";
     public final static String MONTH_FUNCTION_BODY = "" +
             "Long month(Object o) { " +
-            "    def v = o; if (v == null) return null; " +
+            "    def v = o; if (v == null || v == 0L) return null; " +
             "    Date d = new Date(v); if (d == null) return null; " +
             "    Calendar c = Calendar.getInstance(); " +
             "    c.setTime(d); " +
@@ -144,7 +144,7 @@ public class SQLFunctions {
     public final static String WEEK_FUNCTION = "week";
     public final static String WEEK_FUNCTION_BODY = "" +
             "Long week(Object o) { " +
-            "    def v = o; if (v == null) return null; " +
+            "    def v = o; if (v == null || v == 0L) return null; " +
             "    Date d = new Date(v); if (d == null) return null; " +
             "    Calendar c = Calendar.getInstance(); " +
             "    c.setTime(d); " +
@@ -155,7 +155,7 @@ public class SQLFunctions {
     public final static String DAY_FUNCTION = "day";
     public final static String DAY_FUNCTION_BODY = "" +
             "Long day(Object o) { " +
-            "    def v = o; if (v == null) return null; " +
+            "    def v = o; if (v == null || v == 0L) return null; " +
             "    Date d = new Date(v); if (d == null) return null; " +
             "    Calendar c = Calendar.getInstance(); " +
             "    c.setTime(d); " +
@@ -165,19 +165,19 @@ public class SQLFunctions {
 
     public final static String QUARTER_FUNCTION = "quarter";
     public final static String QUARTER_FUNCTION_BODY = "" +
-            "Integer quarter(Object o) {\n" +
-            "    def v = o; if (v == null) return null;\n" +
-            "    Date d = new Date(v); if (d == null) return null;  \n" +
-            "    Calendar c = Calendar.getInstance();  \n" +
-            "    c.setTime(d);\n" +
+            "Integer quarter(Object o) { " +
+            "    def v = o; if (v == null || v == 0L) return null; " +
+            "    Date d = new Date(v); if (d == null) return null; " +
+            "    Calendar c = Calendar.getInstance(); " +
+            "    c.setTime(d); " +
             " " +
-            "    int month = c.get(Calendar.MONTH);\n" +
-            "    if (month == Calendar.JANUARY || month == Calendar.FEBRUARY || month == Calendar.MARCH) return 1;\n" +
-            "    else if (month == Calendar.APRIL || month == Calendar.MAY || month == Calendar.JUNE) return 2;\n" +
-            "    else if (month == Calendar.JULY || month == Calendar.AUGUST || month == Calendar.SEPTEMBER) return 3;\n" +
-            "    else if (month == Calendar.OCTOBER || month == Calendar.NOVEMBER || month == Calendar.DECEMBER) return 4;\n" +
-            "\n" +
-            "    return null;  \n" +
+            "    int month = c.get(Calendar.MONTH); " +
+            "    if (month == Calendar.JANUARY || month == Calendar.FEBRUARY || month == Calendar.MARCH) return 1; " +
+            "    else if (month == Calendar.APRIL || month == Calendar.MAY || month == Calendar.JUNE) return 2; " +
+            "    else if (month == Calendar.JULY || month == Calendar.AUGUST || month == Calendar.SEPTEMBER) return 3; " +
+            "    else if (month == Calendar.OCTOBER || month == Calendar.NOVEMBER || month == Calendar.DECEMBER) return 4; " +
+            " " +
+            "    return null; " +
             "}";
 
     public final static String NOW_FUNCTION = "now";
