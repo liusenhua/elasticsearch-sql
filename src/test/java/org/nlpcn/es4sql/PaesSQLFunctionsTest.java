@@ -246,6 +246,19 @@ public class PaesSQLFunctionsTest {
     }
 
     @Test
+    public void instr() throws Exception {
+        String query = "SELECT email," +
+                "instr(email, '@') pos, " +
+                "instr(email, '.com') pos_com, " +
+                "instr(email, '@', 14) from_index, " +
+                "instr(email, '@', 1, 2) as second_search" +
+                " FROM " + TestsConstants.PAES_TEST_INDEX + "/account";
+        printQuery(query);
+        CSVResult csvResult = getCsvResult(false, query);
+        print(csvResult);
+    }
+
+    @Test
     public void countAllFunctions() throws Exception {
         String query = "SELECT count(*) " +
                 " FROM " + TestsConstants.PAES_TEST_INDEX + "/account";

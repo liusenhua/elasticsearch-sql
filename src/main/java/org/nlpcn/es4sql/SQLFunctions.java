@@ -22,7 +22,7 @@ public class SQLFunctions {
     public final static Set<String> buildInFunctions = Sets.newHashSet(
             "exp", "ln", "log", "log10", "sqrt", "cbrt", "ceil", "floor", "rint", "pow", "round",
             "random", "abs", //nummber operator
-            "split", "concat", "concat_ws", "substring", "substr", "trim",//string operator
+            "split", "concat", "concat_ws", "substring", "substr", "trim", "instr", //string operator
             "add", "multiply", "divide", "subtract", "modulus",//binary operator
             "field", "to_date", "date_format", "to_char",
             "year", "month", "day", "quarter", "week", "now", "today",
@@ -88,6 +88,29 @@ public class SQLFunctions {
             "   def len = str.length(); def begin = pos > 0 ? pos - 1 : pos + len; " +
             "   return str.substring(begin); " +
             " }";
+
+    public final static String INSTR_FUNCTION = "instr";
+    public final static String INSTR_FUNCTION_BODY = "" +
+            "Integer instr(String src, String target, Integer from_index, Integer nth_appearance) { " +
+            "    if (src == null || src == '' || target == null || target == '') return null; " +
+            "    int fromIndex = 0; if (from_index != null && from_index.intValue() > 0) { fromIndex = from_index.intValue() - 1; } " +
+            "    int total = 1; if (nth_appearance != null && nth_appearance.intValue() > 1) { total = nth_appearance.intValue(); } " +
+            "    int count = 0; int index = -1; " +
+            "    while(count < total) { " +
+            "        index = src.indexOf(target, fromIndex); " +
+            "        count = count + 1; " +
+            "        fromIndex = index > fromIndex ? index + 1 : fromIndex; " +
+            "    } " +
+            "    return index + 1; " +
+            "} " +
+            " " +
+            "Integer instr(String src, String target, Integer from_index) { " +
+            "    return instr(src, target, from_index, null); " +
+            "} " +
+            " " +
+            "Integer instr(String src, String target) { " +
+            "    return instr(src, target, null); " +
+            "}";
 
     public final static String YEAR_FUNCTION = "year";
     public final static String YEAR_FUNCTION_BODY = "" +
@@ -175,6 +198,7 @@ public class SQLFunctions {
         extendFunctions.put(TO_DATE_FUNCTION, TO_DATE_FUNCTION_BODY);
         extendFunctions.put(TO_CHAR_FUNCTION, TO_CHAR_FUNCTION_BODY);
         extendFunctions.put(SUBSTRING_FUNCTION, SUBSTRING_FUNCTION_BODY);
+        extendFunctions.put(INSTR_FUNCTION, INSTR_FUNCTION_BODY);
         extendFunctions.put(YEAR_FUNCTION, YEAR_FUNCTION_BODY);
         extendFunctions.put(MONTH_FUNCTION, MONTH_FUNCTION_BODY);
         extendFunctions.put(WEEK_FUNCTION, WEEK_FUNCTION_BODY);
@@ -281,6 +305,10 @@ public class SQLFunctions {
             case "substr":
             case "substring":
                 functionStr = substring(paramers, functions);
+
+            case "instr":
+                functionStr = instr(paramers, functions);
+
                 break;
             case "trim":
                 functionStr = trim(Util.expr2Object((SQLExpr) paramers.get(0).value).toString(), paramers.get(0).key);
@@ -589,6 +617,17 @@ public class SQLFunctions {
         }
     }
 
+    public static Tuple<String, String> instr(List<KVValue> parameters, Map<String, String> functions) {
+        define(SQLFunctions.INSTR_FUNCTION, functions);
+        if (parameters.size() == 4) {
+            return invoke(SQLFunctions.INSTR_FUNCTION, parameters.get(0), parameters.get(1), parameters.get(2), parameters.get(3));
+        } else if (parameters.size() == 3){
+            return invoke(SQLFunctions.INSTR_FUNCTION, parameters.get(0), parameters.get(1), parameters.get(2));
+        } else {
+            return invoke(SQLFunctions.INSTR_FUNCTION, parameters.get(0), parameters.get(1));
+        }
+    }
+
     //split(Column str, java.lang.String pattern)
     public static Tuple<String, String> split(String strColumn, String pattern, String valueName) {
         String name = "split_" + random();
@@ -690,6 +729,29 @@ public class SQLFunctions {
         String script = Util.renderString(template, map);
 
         List<KVValue> parameters = Arrays.asList(arg1, arg2, arg3);
+        for (KVValue p: parameters) {
+            if (p.valueType == KVValue.ValueType.EVALUATED) {
+                script = Util.expr2Object((SQLExpr) p.value).toString() + ";" + script;
+            }
+        }
+
+        return new Tuple<>(name, script);
+    }
+
+    public static Tuple<String, String> invoke(String methodName, KVValue arg1, KVValue arg2, KVValue arg3, KVValue arg4 ) {
+        String name = methodName + "_" + random();
+        String template = "def ${RET} = ${FUNC}(${ARG1}, ${ARG2}, ${ARG3}, ${ARG4})";
+
+        Map<String, String> map = new HashMap<>();
+        map.put("FUNC", methodName);
+        map.put("RET", name);
+        map.put("ARG1", getValue(arg1));
+        map.put("ARG2", getValue(arg2));
+        map.put("ARG3", getValue(arg3));
+        map.put("ARG4", getValue(arg4));
+        String script = Util.renderString(template, map);
+
+        List<KVValue> parameters = Arrays.asList(arg1, arg2, arg3, arg4);
         for (KVValue p: parameters) {
             if (p.valueType == KVValue.ValueType.EVALUATED) {
                 script = Util.expr2Object((SQLExpr) p.value).toString() + ";" + script;
