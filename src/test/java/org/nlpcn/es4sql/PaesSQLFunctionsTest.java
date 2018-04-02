@@ -259,6 +259,16 @@ public class PaesSQLFunctionsTest {
     }
 
     @Test
+    public void replace() throws Exception {
+        String query = "SELECT email," +
+                "replace(replace(email, '.com', '.net'), '@', '#') " +
+                " FROM " + TestsConstants.PAES_TEST_INDEX + "/account";
+        printQuery(query);
+        CSVResult csvResult = getCsvResult(false, query);
+        print(csvResult);
+    }
+
+    @Test
     public void countAllFunctions() throws Exception {
         String query = "SELECT count(*) " +
                 " FROM " + TestsConstants.PAES_TEST_INDEX + "/account";

@@ -22,7 +22,7 @@ public class SQLFunctions {
     public final static Set<String> buildInFunctions = Sets.newHashSet(
             "exp", "ln", "log", "log10", "sqrt", "cbrt", "ceil", "floor", "rint", "pow", "round",
             "random", "abs", //nummber operator
-            "split", "concat", "concat_ws", "substring", "substr", "trim", "instr", //string operator
+            "split", "concat", "concat_ws", "substring", "substr", "trim", "instr", "replace",  //string operator
             "add", "multiply", "divide", "subtract", "modulus",//binary operator
             "field", "to_date", "date_format", "to_char",
             "year", "month", "day", "quarter", "week", "now", "today",
@@ -112,6 +112,13 @@ public class SQLFunctions {
             "    return instr(src, target, null); " +
             "}";
 
+    public final static String REPLACR_FUNCTION = "replace";
+    public final static String REPLACR_FUNCTION_BODY = "" +
+            "String replace(String src, String search_str, String replace_str) { " +
+            "    if (src == null) return null; " +
+            "    return src.replace(search_str, replace_str); " +
+            "}";
+
     public final static String YEAR_FUNCTION = "year";
     public final static String YEAR_FUNCTION_BODY = "" +
             "Long year(Object o) { " +
@@ -199,6 +206,7 @@ public class SQLFunctions {
         extendFunctions.put(TO_CHAR_FUNCTION, TO_CHAR_FUNCTION_BODY);
         extendFunctions.put(SUBSTRING_FUNCTION, SUBSTRING_FUNCTION_BODY);
         extendFunctions.put(INSTR_FUNCTION, INSTR_FUNCTION_BODY);
+        extendFunctions.put(REPLACR_FUNCTION, REPLACR_FUNCTION_BODY);
         extendFunctions.put(YEAR_FUNCTION, YEAR_FUNCTION_BODY);
         extendFunctions.put(MONTH_FUNCTION, MONTH_FUNCTION_BODY);
         extendFunctions.put(WEEK_FUNCTION, WEEK_FUNCTION_BODY);
@@ -305,11 +313,16 @@ public class SQLFunctions {
             case "substr":
             case "substring":
                 functionStr = substring(paramers, functions);
+                break;
 
             case "instr":
                 functionStr = instr(paramers, functions);
-
                 break;
+
+            case "replace":
+                functionStr = replace(paramers, functions);
+                break;
+
             case "trim":
                 functionStr = trim(Util.expr2Object((SQLExpr) paramers.get(0).value).toString(), paramers.get(0).key);
                 break;
@@ -626,6 +639,11 @@ public class SQLFunctions {
         } else {
             return invoke(SQLFunctions.INSTR_FUNCTION, parameters.get(0), parameters.get(1));
         }
+    }
+
+    public static Tuple<String, String> replace(List<KVValue> parameters, Map<String, String> functions) {
+        define(SQLFunctions.REPLACR_FUNCTION, functions);
+        return invoke(SQLFunctions.REPLACR_FUNCTION, parameters.get(0), parameters.get(1), parameters.get(2));
     }
 
     //split(Column str, java.lang.String pattern)
