@@ -1,9 +1,6 @@
 package org.nlpcn.es4sql.domain;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import org.nlpcn.es4sql.Util;
 
@@ -110,5 +107,21 @@ public class MethodField extends Field {
 
     public List<Field> getReference() {
         return  reference;
+    }
+
+    public Set<Field> flatten() {
+        Set<Field> ret = new HashSet<>();
+        ret.add(this);
+
+        if (reference != null) {
+            for (Field f : reference) {
+                if (f instanceof MethodField) {
+                    MethodField f2 = (MethodField) f;
+                    ret.addAll(f2.flatten());
+                }
+            }
+        }
+
+        return ret;
     }
 }

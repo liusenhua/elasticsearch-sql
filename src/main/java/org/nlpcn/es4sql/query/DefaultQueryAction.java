@@ -103,6 +103,10 @@ public class DefaultQueryAction extends QueryAction {
 
 			for (Field field : fields) {
 				if (field instanceof MethodField) {
+					if (Select.isAggField(field)) {
+						continue;
+					}
+
 					MethodField method = (MethodField) field;
 					if (method.getName().toLowerCase().equals("script")) {
 						handleScriptField(method);

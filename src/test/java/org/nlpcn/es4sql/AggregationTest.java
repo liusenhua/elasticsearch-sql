@@ -351,7 +351,6 @@ public class AggregationTest {
 	@Test
 	public void countGroupByDateTest() throws IOException, SqlParseException, SQLFeatureNotSupportedException {
         String result = MainTestSuite.getSearchDao().explain("select insert_time from online  group by date_histogram(field='insert_time','interval'='1.5h','format'='yyyy-MM','min_doc_count'=5) ").explain().toString();
-        System.out.println(result);
         Assert.assertTrue(result.replaceAll("\\s+", "").contains("{\"date_histogram\":{\"field\":\"insert_time\",\"format\":\"yyyy-MM\",\"interval\":\"1.5h\",\"offset\":0,\"order\":{\"_key\":\"asc\"},\"keyed\":false,\"min_doc_count\":5}"));
 	}
 

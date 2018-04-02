@@ -213,6 +213,7 @@ public class FieldMaker {
                 if (SQLFunctions.buildInFunctions.contains(binaryOpExpr.getOperator().toString().toLowerCase())) {
                     SQLMethodInvokeExpr mExpr = makeBinaryMethodField(binaryOpExpr, alias, first);
                     MethodField abc = makeMethodField(mExpr.getMethodName(), mExpr.getParameters(), null, null, tableAlias, Select.isAggFunction(finalMethodName), functions);
+                    reference.add(abc);
                     paramers.add(new KVValue(abc.getParams().get(0).toString(), new SQLCharExpr(abc.getParams().get(1).toString()), KVValue.ValueType.EVALUATED));
                 } else {
                     if (!binaryOpExpr.getOperator().getName().equals("=")) {
@@ -249,6 +250,7 @@ public class FieldMaker {
                 } else if (SQLFunctions.buildInFunctions.contains(methodName)) {
                     //throw new SqlParseException("only support script/nested as inner functions");
                     MethodField abc = makeMethodField(methodName, mExpr.getParameters(), null, null, tableAlias, Select.isAggFunction(finalMethodName), functions);
+                    reference.add(abc);
                     paramers.add(new KVValue(
                             abc.getParams().get(0).toString(),
                             new SQLCharExpr(abc.getParams().get(1).toString()),
@@ -285,7 +287,7 @@ public class FieldMaker {
 
         //just check we can find the function
         if (SQLFunctions.buildInFunctions.contains(finalMethodName)) {
-            if (alias == null && first) {
+            if (alias == null) {
                 alias = "field_" + SQLFunctions.random();//paramers.get(0).value.toString();
             }
             //should check if field and first .
@@ -303,7 +305,7 @@ public class FieldMaker {
         }
 
         if (Select.isAggFunction(finalMethodName)) {
-            if (alias == null && first) {
+            if (alias == null) {
                 alias = finalMethodName.toLowerCase() + "_" + SQLFunctions.random();//paramers.get(0).value.toString();
             }
         }

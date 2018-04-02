@@ -1,8 +1,7 @@
 package org.nlpcn.es4sql.query;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.stream.Collectors;
 
 import com.google.common.collect.Lists;
 import org.elasticsearch.action.search.SearchRequestBuilder;
@@ -12,6 +11,7 @@ import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.search.aggregations.AbstractAggregationBuilder;
 import org.elasticsearch.search.aggregations.AggregationBuilder;
 import org.elasticsearch.search.aggregations.AggregationBuilders;
+import org.elasticsearch.search.aggregations.PipelineAggregationBuilder;
 import org.elasticsearch.search.aggregations.bucket.nested.NestedAggregationBuilder;
 import org.elasticsearch.search.aggregations.bucket.nested.ReverseNestedAggregationBuilder;
 import org.elasticsearch.search.aggregations.bucket.terms.Terms;
@@ -316,8 +316,7 @@ public class AggregationQueryAction extends QueryAction {
     private void explanFields(SearchRequestBuilder request, List<Field> fields, AggregationBuilder groupByAgg) throws SqlParseException {
         for (Field field : fields) {
             if (field instanceof MethodField) {
-
-                if (field.getName().equals("script")) {
+                if (!Select.isAggField(field) && field.getName().equals("script")) {
                     request.addStoredField(field.getAlias());
                     DefaultQueryAction defaultQueryAction = new DefaultQueryAction(client, select);
                     defaultQueryAction.intialize(request);
@@ -326,11 +325,26 @@ public class AggregationQueryAction extends QueryAction {
                     continue;
                 }
 
-                AggregationBuilder makeAgg = aggMaker.makeFieldAgg((MethodField) field, groupByAgg);
-                if (groupByAgg != null) {
-                    groupByAgg.subAggregation(makeAgg);
-                } else {
-                    request.addAggregation(makeAgg);
+                // The pipeline aggregation field may reference other aggregation
+                Set<Field> aggFields = aggMaker.getReferenceAggs((MethodField)field);
+                aggFields.add(field);
+                for (Field f : aggFields) {
+                    if (f.getName().toUpperCase().equals("SCRIPT")) {
+                        PipelineAggregationBuilder pipelineAgg = aggMaker.makePipelineAgg((MethodField) f, groupByAgg);
+                        if (groupByAgg != null) {
+                            groupByAgg.subAggregation(pipelineAgg);
+                        } else {
+                            //request.addAggregation(pipelineAgg);
+                        }
+                        continue;
+                    }
+
+                    AggregationBuilder makeAgg = aggMaker.makeFieldAgg((MethodField) f, groupByAgg);
+                    if (groupByAgg != null) {
+                        groupByAgg.subAggregation(makeAgg);
+                    } else {
+                        request.addAggregation(makeAgg);
+                    }
                 }
             } else if (field instanceof Field) {
                 request.addStoredField(field.getName());

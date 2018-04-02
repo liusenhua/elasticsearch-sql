@@ -72,8 +72,8 @@ public class PaesSQLFunctionsTest {
 
     @Test
     public void aggWithOperationAfter() throws Exception {
-        String query = "SELECT floor(abs(age)+2) -  ceil(age) - avg(age) " +
-                "FROM " + TestsConstants.PAES_TEST_INDEX + "/account";
+        String query = "SELECT count(age), sum(age), sum(age) / count(age), avg(age) " +
+                "FROM " + TestsConstants.PAES_TEST_INDEX + "/account group by gender";
         printQuery(query);
         CSVResult csvResult = getCsvResult(false, query);
         print(csvResult);
@@ -81,8 +81,8 @@ public class PaesSQLFunctionsTest {
 
     @Test
     public void aggWithOperationAfter2() throws Exception {
-        String query = "SELECT min(age) as min1, min(age) as min2, max(age) " +
-                "FROM " + TestsConstants.PAES_TEST_INDEX + "/account";
+        String query = "SELECT min(abs(age)) + max(age) + avg(age) as s " +
+                "FROM " + TestsConstants.PAES_TEST_INDEX + "/account group by gender";
         printQuery(query);
         CSVResult csvResult = getCsvResult(false, query);
         print(csvResult);
@@ -90,7 +90,7 @@ public class PaesSQLFunctionsTest {
 
     @Test
     public void aggWithOperationAfter3() throws Exception {
-        String query = "SELECT min(abs(age)) + max(age) " +
+        String query = "SELECT round(sqrt(min(abs(age)) + max(age)), 3) as s " +
                 "FROM " + TestsConstants.PAES_TEST_INDEX + "/account group by gender";
         printQuery(query);
         CSVResult csvResult = getCsvResult(false, query);

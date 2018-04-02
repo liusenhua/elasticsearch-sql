@@ -442,7 +442,7 @@ public class SQLFunctions {
             //for now ,if variant is string,then change to double.
             String temp = param.key;
 
-            return " if( " + temp + " instanceof String) " + temp + "= Double.parseDouble(" + temp.trim() + "); ";
+            return "if( " + temp + " instanceof String ) " + temp + " = Double.parseDouble(" + temp.trim() + ")";
         } else return "";
     }
 

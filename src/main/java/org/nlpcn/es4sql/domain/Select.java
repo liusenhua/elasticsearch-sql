@@ -149,5 +149,25 @@ public class Select extends Query {
     public static boolean isAggFunction(String methodName) {
     	return aggsFunctions.contains(methodName.toUpperCase());
 	}
+
+	public static boolean isAggField(Field field) {
+    	String name = field.getName();
+    	if (isAggFunction(name)) {
+    		return true;
+		}
+
+		if (field instanceof  MethodField) {
+    		List<Field> reference = ((MethodField) field).getReference();
+    		if (reference != null) {
+				for (Field field1 : reference) {
+					if (isAggField(field1)) {
+						return true;
+					}
+				}
+			}
+		}
+
+		return false;
+	}
 }
 
