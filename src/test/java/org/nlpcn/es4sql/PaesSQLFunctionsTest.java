@@ -177,6 +177,20 @@ public class PaesSQLFunctionsTest {
     }
 
     @Test
+    public void dateAdd() throws Exception {
+        String query = "SELECT createTime, " +
+                "to_char(date_add('day', -1, createTime)) add_day, " +
+                "to_char(date_add('week', 1, createTime)) add_week, " +
+                "to_char(date_add('month', 1, createTime)) add_month, " +
+                "to_char(date_add('quarter', -1, createTime)) add_quarter, " +
+                "to_char(date_add('year', 1, createTime)) add_year " +
+                " FROM " + TestsConstants.PAES_TEST_INDEX + "/account";
+        printQuery(query);
+        CSVResult csvResult = getCsvResult(false, query);
+        print(csvResult);
+    }
+
+    @Test
     public void selectAllFunctions() throws Exception {
         String query = "SELECT *" +
                 " FROM " + TestsConstants.PAES_TEST_INDEX + "/account";

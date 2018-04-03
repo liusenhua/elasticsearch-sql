@@ -70,7 +70,11 @@ public class SQLFunctions {
             "    def v = o; if (v == null) return null;" +
             "    if (v instanceof String) return (String)v;" +
             "    return new SimpleDateFormat(pattern).format(new Date(v));" +
-            "}" ;
+            "}" +
+            " " +
+            "String to_char(Object o) {" +
+            "    return to_char(o, 'yyyy-MM-dd HH:mm:ss.SSS'); " +
+            "}";
 
     public final static String SUBSTRING_FUNCTION = "substring";
     public final static String SUBSTRING_FUNCTION_BODY = "" +
@@ -198,6 +202,27 @@ public class SQLFunctions {
             "    return today.getTime(); " +
             "}";
 
+    public final static String DATE_ADD_FUNCTION = "date_add";
+    public final static String DATE_ADD_FUNCTION_BODY = "" +
+            "Long date_add(String date_type, int interval, Object o) { " +
+            "    def v = o; if (v == null || v == 0L) return null; " +
+            "    Date d = new Date(v); if (d == null) return null; " +
+            "    Calendar c = Calendar.getInstance(); " +
+            "    c.setTime(d); " +
+            "    if (date_type.equalsIgnoreCase('year')) { " +
+            "        c.add(Calendar.YEAR, interval); " +
+            "    } else if (date_type.equalsIgnoreCase('month')) { " +
+            "        c.add(Calendar.MONTH, interval); " +
+            "    } else if (date_type.equalsIgnoreCase('quarter')) { " +
+            "        c.add(Calendar.MONTH, interval * 3); " +
+            "    } else if (date_type.equalsIgnoreCase('day')) { " +
+            "        c.add(Calendar.DATE, interval); " +
+            "    } else if (date_type.equalsIgnoreCase('week')) { " +
+            "        c.add(Calendar.DATE, interval * 7); " +
+            "    } " +
+            "    return c.getTime().getTime(); " +
+            "}";
+
     public final static Map<String, String> extendFunctions = new TreeMap<>();
     static {
         extendFunctions.put(ROUND_FUNCTION, ROUND_FUNCTION_BODY);
@@ -214,6 +239,7 @@ public class SQLFunctions {
         extendFunctions.put(QUARTER_FUNCTION, QUARTER_FUNCTION_BODY);
         extendFunctions.put(NOW_FUNCTION, NOW_FUNCTION_BODY);
         extendFunctions.put(TODAY_FUNCTION, TODAY_FUNCTION_BODY);
+        extendFunctions.put(DATE_ADD_FUNCTION, DATE_ADD_FUNCTION_BODY);
     }
 
     public static Tuple<String, String> function(String methodName, List<KVValue> paramers, boolean returnValue, Map<String, String> functions) {
@@ -275,6 +301,10 @@ public class SQLFunctions {
 
             case "today":
                 functionStr = today(paramers, functions);
+                break;
+
+            case "date_add":
+                functionStr = dateAdd(paramers, functions);
                 break;
 
             case "pow":
@@ -516,7 +546,11 @@ public class SQLFunctions {
 
     public static Tuple<String, String> to_char(List<KVValue> parameters, Map<String, String> functions) {
         define(SQLFunctions.TO_CHAR_FUNCTION, functions);
-        return invoke(SQLFunctions.TO_CHAR_FUNCTION, parameters.get(0), parameters.get(1));
+        if (parameters.size() >= 2) {
+            return invoke(SQLFunctions.TO_CHAR_FUNCTION, parameters.get(0), parameters.get(1));
+        } else {
+            return invoke(SQLFunctions.TO_CHAR_FUNCTION, parameters.get(0));
+        }
     }
 
     public static Tuple<String, String> year(List<KVValue> parameters, Map<String, String> functions) {
@@ -552,6 +586,11 @@ public class SQLFunctions {
     public static Tuple<String, String> today(List<KVValue> parameters, Map<String, String> functions) {
         define(SQLFunctions.TODAY_FUNCTION, functions);
         return invoke(SQLFunctions.TODAY_FUNCTION);
+    }
+
+    public static Tuple<String, String> dateAdd(List<KVValue> parameters, Map<String, String> functions) {
+        define(SQLFunctions.DATE_ADD_FUNCTION, functions);
+        return invoke(SQLFunctions.DATE_ADD_FUNCTION, parameters.get(0), parameters.get(1), parameters.get(2));
     }
 
     public static Tuple<String, String> log10(String strColumn, String valueName) {
