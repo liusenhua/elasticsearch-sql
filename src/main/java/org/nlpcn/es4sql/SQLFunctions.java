@@ -24,7 +24,7 @@ public class SQLFunctions {
             "random", "abs", //nummber operator
             "split", "concat", "concat_ws", "substring", "substr", "trim", "instr", "replace",  //string operator
             "add", "multiply", "divide", "subtract", "modulus",//binary operator
-            "field", "to_date", "date_format", "to_char",
+            "field", "to_date", "date_format", "to_char", "to_number",
             "year", "month", "day", "quarter", "week", "now", "today", "date_add", "date_diff", "date_trunc", "date_part",
             "eval" // to support evaluate test-case expression
     );
@@ -52,6 +52,22 @@ public class SQLFunctions {
             " " +
             "double log(double d) { " +
             "  return Math.log(d); " +
+            "}";
+
+    public final static String TO_NUMBER_FUNCTION = "to_number";
+    public final static String TO_NUMBER_FUNCTION_BODY = "" +
+            "Double to_number(Object o, String format) { " +
+            "    def v = o; if (v == null) return null; " +
+            "    try { " +
+            "        if (v instanceof String) { return Double.parseDouble(v); } " +
+            "        return Double.valueOf(v); " +
+            "    } catch (NumberFormatException e) { " +
+            "        return null; " +
+            "    } " +
+            "} " +
+            " " +
+            "Double to_number(Object o) { " +
+            "    return to_number(o, null); " +
             "}";
 
     public final static String TO_DATE_FUNCTION = "to_date";
@@ -330,6 +346,7 @@ public class SQLFunctions {
     static {
         extendFunctions.put(ROUND_FUNCTION, ROUND_FUNCTION_BODY);
         extendFunctions.put(LOG_FUNCTION, LOG_FUNCTION_BODY);
+        extendFunctions.put(TO_NUMBER_FUNCTION, TO_NUMBER_FUNCTION_BODY);
         extendFunctions.put(TO_DATE_FUNCTION, TO_DATE_FUNCTION_BODY);
         extendFunctions.put(TO_CHAR_FUNCTION, TO_CHAR_FUNCTION_BODY);
         extendFunctions.put(SUBSTRING_FUNCTION, SUBSTRING_FUNCTION_BODY);
@@ -370,6 +387,10 @@ public class SQLFunctions {
 
             case "concat_ws":
                 functionStr = concat_ws(paramers.get(0).value.toString(), paramers.subList(1, paramers.size()));
+                break;
+
+            case "to_number":
+                functionStr = to_number(paramers, functions);
                 break;
 
             case "to_date":
@@ -654,6 +675,15 @@ public class SQLFunctions {
             return invoke(SQLFunctions.LOG_FUNCTION, parameters.get(0), parameters.get(1));
         } else {
             return invoke(SQLFunctions.LOG_FUNCTION, parameters.get(0));
+        }
+    }
+
+    public static Tuple<String, String> to_number(List<KVValue> parameters, Map<String, String> functions) {
+        define(SQLFunctions.TO_NUMBER_FUNCTION, functions);
+        if (parameters.size() >= 2) {
+            return invoke(SQLFunctions.TO_NUMBER_FUNCTION, parameters.get(0), parameters.get(1));
+        } else {
+            return invoke(SQLFunctions.TO_NUMBER_FUNCTION, parameters.get(0));
         }
     }
 

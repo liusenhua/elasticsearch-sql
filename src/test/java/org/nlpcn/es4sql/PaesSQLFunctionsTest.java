@@ -122,6 +122,17 @@ public class PaesSQLFunctionsTest {
     }
 
     @Test
+    public void toNumber() throws Exception {
+        String query = "SELECT " +
+                "to_number(255) num, to_number('255') num_to_str, to_number('255a') bad_str, " +
+                "1000 + '255' as add_str, 1000 + to_number('255') as add_num " +
+                "FROM " + TestsConstants.PAES_TEST_INDEX + "/account";
+        printQuery(query);
+        CSVResult csvResult = getCsvResult(false, query);
+        print(csvResult);
+    }
+
+    @Test
     public void todayFunctions() throws Exception {
         String query = "SELECT " +
                 "now() now, today() today, " +
