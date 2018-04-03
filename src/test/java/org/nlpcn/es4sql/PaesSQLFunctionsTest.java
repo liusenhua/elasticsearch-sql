@@ -17,8 +17,6 @@ import org.nlpcn.es4sql.query.QueryAction;
 
 import java.net.UnknownHostException;
 import java.sql.SQLFeatureNotSupportedException;
-import java.util.Calendar;
-import java.util.Date;
 import java.util.List;
 
 /**
@@ -184,6 +182,20 @@ public class PaesSQLFunctionsTest {
                 "to_char(date_add('month', 1, createTime)) add_month, " +
                 "to_char(date_add('quarter', -1, createTime)) add_quarter, " +
                 "to_char(date_add('year', 1, createTime)) add_year " +
+                " FROM " + TestsConstants.PAES_TEST_INDEX + "/account";
+        printQuery(query);
+        CSVResult csvResult = getCsvResult(false, query);
+        print(csvResult);
+    }
+
+    @Test
+    public void dateDiff() throws Exception {
+        String query = "SELECT createTime, " +
+                "date_diff('day', to_date('2015-03-16 21:27:33.953'), createTime) diff_day, " +
+                "date_diff('week', to_date('2015-03-16 21:27:33.953'), createTime) diff_week, " +
+                "date_diff('month', to_date('2015-03-16 21:27:33.953'), createTime) diff_month, " +
+                "date_diff('quarter', to_date('2015-03-16 21:27:33.953'), createTime) diff_quterr, " +
+                "date_diff('year', to_date('2015-03-16 21:27:33.953'), createTime) diff_year " +
                 " FROM " + TestsConstants.PAES_TEST_INDEX + "/account";
         printQuery(query);
         CSVResult csvResult = getCsvResult(false, query);

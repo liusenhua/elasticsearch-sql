@@ -62,6 +62,10 @@ public class SQLFunctions {
 //            "   SimpleDateFormat sdf = new SimpleDateFormat(\"yyyy-MM-dd'T'HH:mm:ss.SSSXXX\"); " +
 //            "   return sdf.format(d);" +
             "   return d.getTime();" +
+            "}" +
+            " " +
+            "Long to_date(Object o) {" +
+            "    return to_date(o, 'yyyy-MM-dd HH:mm:ss.SSS'); " +
             "}";
 
     public final static String TO_CHAR_FUNCTION = "to_char";
@@ -223,6 +227,32 @@ public class SQLFunctions {
             "    return c.getTime().getTime(); " +
             "}";
 
+    public final static String DATE_DIFF_FUNCTION = "date_diff";
+    public final static String DATE_DIFF_FUNCTION_BODY = "" +
+            "LocalDate to_localdate(Object o) { " +
+            "    def v = o; if (v == null || v == 0L) return null; " +
+            "    Instant instant = Instant.ofEpochMilli(v); if (instant == null) return null; " +
+            "    return instant.atZone(ZoneId.systemDefault()).toLocalDate(); " +
+            "} " +
+            " " +
+            "Long date_diff(String date_type, Object o_1, Object o_2) { " +
+            "    LocalDate d1 = to_localdate(o_1); if (d1 == null) return null; " +
+            "    LocalDate d2 = to_localdate(o_2); if (d2 == null) return null; " +
+            "    if (date_type.equalsIgnoreCase('year')) { " +
+            "        return ChronoUnit.YEARS.between(d1, d2); " +
+            "    } else if (date_type.equalsIgnoreCase('month')) { " +
+            "        return ChronoUnit.MONTHS.between(d1, d2); " +
+            "    } else if (date_type.equalsIgnoreCase('day')) { " +
+            "        return ChronoUnit.DAYS.between(d1, d2); " +
+            "    } else if (date_type.equalsIgnoreCase('week')) { " +
+            "        return ChronoUnit.WEEKS.between(d1, d2); " +
+            "    } else if (date_type.equalsIgnoreCase('quarter')) { " +
+            "        return ChronoUnit.MONTHS.between(d1, d2) / 3; " +
+            "    } else { " +
+            "        return null; " +
+            "    } " +
+            "} ";
+
     public final static Map<String, String> extendFunctions = new TreeMap<>();
     static {
         extendFunctions.put(ROUND_FUNCTION, ROUND_FUNCTION_BODY);
@@ -240,6 +270,7 @@ public class SQLFunctions {
         extendFunctions.put(NOW_FUNCTION, NOW_FUNCTION_BODY);
         extendFunctions.put(TODAY_FUNCTION, TODAY_FUNCTION_BODY);
         extendFunctions.put(DATE_ADD_FUNCTION, DATE_ADD_FUNCTION_BODY);
+        extendFunctions.put(DATE_DIFF_FUNCTION, DATE_DIFF_FUNCTION_BODY);
     }
 
     public static Tuple<String, String> function(String methodName, List<KVValue> paramers, boolean returnValue, Map<String, String> functions) {
@@ -305,6 +336,10 @@ public class SQLFunctions {
 
             case "date_add":
                 functionStr = dateAdd(paramers, functions);
+                break;
+
+            case "date_diff":
+                functionStr = dateDiff(paramers, functions);
                 break;
 
             case "pow":
@@ -541,7 +576,11 @@ public class SQLFunctions {
 
     public static Tuple<String, String> to_date(List<KVValue> parameters, Map<String, String> functions) {
         define(SQLFunctions.TO_DATE_FUNCTION, functions);
-        return invoke(SQLFunctions.TO_DATE_FUNCTION, parameters.get(0), parameters.get(1));
+        if (parameters.size() >= 2) {
+            return invoke(SQLFunctions.TO_DATE_FUNCTION, parameters.get(0), parameters.get(1));
+        } else {
+            return invoke(SQLFunctions.TO_DATE_FUNCTION, parameters.get(0));
+        }
     }
 
     public static Tuple<String, String> to_char(List<KVValue> parameters, Map<String, String> functions) {
@@ -591,6 +630,11 @@ public class SQLFunctions {
     public static Tuple<String, String> dateAdd(List<KVValue> parameters, Map<String, String> functions) {
         define(SQLFunctions.DATE_ADD_FUNCTION, functions);
         return invoke(SQLFunctions.DATE_ADD_FUNCTION, parameters.get(0), parameters.get(1), parameters.get(2));
+    }
+
+    public static Tuple<String, String> dateDiff(List<KVValue> parameters, Map<String, String> functions) {
+        define(SQLFunctions.DATE_DIFF_FUNCTION, functions);
+        return invoke(SQLFunctions.DATE_DIFF_FUNCTION, parameters.get(0), parameters.get(1), parameters.get(2));
     }
 
     public static Tuple<String, String> log10(String strColumn, String valueName) {
