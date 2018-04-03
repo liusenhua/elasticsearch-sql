@@ -218,6 +218,22 @@ public class PaesSQLFunctionsTest {
     }
 
     @Test
+    public void datePart() throws Exception {
+        String query = "SELECT createTime, " +
+                "date_part('millisecond',  createTime) millisecond, " +
+                "date_part('second',  createTime) second, " +
+                "date_part('minute',  createTime) minute, " +
+                "date_part('hour',  createTime) hour, " +
+                "date_part('day',  createTime) day, " +
+                "date_part('month',  createTime) month, " +
+                "date_part('year',  createTime) year " +
+                " FROM " + TestsConstants.PAES_TEST_INDEX + "/account";
+        printQuery(query);
+        CSVResult csvResult = getCsvResult(false, query);
+        print(csvResult);
+    }
+
+    @Test
     public void selectAllFunctions() throws Exception {
         String query = "SELECT *" +
                 " FROM " + TestsConstants.PAES_TEST_INDEX + "/account";

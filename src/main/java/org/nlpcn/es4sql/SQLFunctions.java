@@ -291,6 +291,41 @@ public class SQLFunctions {
             "    return c.getTime().getTime(); " +
             "}";
 
+    public final static String DATE_PART_FUNCTION = "date_part";
+    public final static String DATE_PART_FUNCTION_BODY = "" +
+            "Long date_part(String date_type, Object o) { " +
+            "    def v = o; if (v == null || v == 0L) return null; " +
+            "    Date d = new Date(v); if (d == null) return null; " +
+            "    Calendar c = Calendar.getInstance(); " +
+            "    c.setTime(d); " +
+            "    if (date_type.equalsIgnoreCase('year')) { " +
+            "        int year = c.get(Calendar.YEAR); " +
+            "        return year; " +
+            "    } else if (date_type.equalsIgnoreCase('month')) { " +
+            "        int month = c.get(Calendar.MONTH); " +
+            "        return month + 1; " +
+            "    } else if (date_type.equalsIgnoreCase('week')) { " +
+            "        int week = c.get(Calendar.WEEK_OF_YEAR); " +
+            "        return week; " +
+            "    } else if (date_type.equalsIgnoreCase('day')) { " +
+            "        int day = c.get(Calendar.DAY_OF_MONTH); " +
+            "        return day; " +
+            "    } else if (date_type.equalsIgnoreCase('hour')) { " +
+            "        int hour = c.get(Calendar.HOUR_OF_DAY); " +
+            "        return hour; " +
+            "    } else if (date_type.equalsIgnoreCase('minute')) { " +
+            "        int minute = c.get(Calendar.MINUTE); " +
+            "        return minute; " +
+            "    } else if (date_type.equalsIgnoreCase('second')) { " +
+            "        int second = c.get(Calendar.SECOND); " +
+            "        return second; " +
+            "    } else if (date_type.equalsIgnoreCase('millisecond')) { " +
+            "        int millisecond = c.get(Calendar.MILLISECOND); " +
+            "        return millisecond; " +
+            "    } " +
+            "    return null; " +
+            "}";
+
     public final static Map<String, String> extendFunctions = new TreeMap<>();
     static {
         extendFunctions.put(ROUND_FUNCTION, ROUND_FUNCTION_BODY);
@@ -310,6 +345,7 @@ public class SQLFunctions {
         extendFunctions.put(DATE_ADD_FUNCTION, DATE_ADD_FUNCTION_BODY);
         extendFunctions.put(DATE_DIFF_FUNCTION, DATE_DIFF_FUNCTION_BODY);
         extendFunctions.put(DATE_TRUNC_FUNCTION, DATE_TRUNC_FUNCTION_BODY);
+        extendFunctions.put(DATE_PART_FUNCTION, DATE_PART_FUNCTION_BODY);
     }
 
     public static Tuple<String, String> function(String methodName, List<KVValue> paramers, boolean returnValue, Map<String, String> functions) {
@@ -383,6 +419,10 @@ public class SQLFunctions {
 
             case "date_trunc":
                 functionStr = dateTrunc(paramers, functions);
+                break;
+
+            case "date_part":
+                functionStr = datePart(paramers, functions);
                 break;
 
             case "pow":
@@ -683,6 +723,11 @@ public class SQLFunctions {
     public static Tuple<String, String> dateTrunc(List<KVValue> parameters, Map<String, String> functions) {
         define(SQLFunctions.DATE_TRUNC_FUNCTION, functions);
         return invoke(SQLFunctions.DATE_TRUNC_FUNCTION, parameters.get(0), parameters.get(1));
+    }
+
+    public static Tuple<String, String> datePart(List<KVValue> parameters, Map<String, String> functions) {
+        define(SQLFunctions.DATE_PART_FUNCTION, functions);
+        return invoke(SQLFunctions.DATE_PART_FUNCTION, parameters.get(0), parameters.get(1));
     }
 
     public static Tuple<String, String> log10(String strColumn, String valueName) {
