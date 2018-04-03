@@ -25,7 +25,7 @@ public class SQLFunctions {
             "split", "concat", "concat_ws", "substring", "substr", "trim", "instr", "replace",  //string operator
             "add", "multiply", "divide", "subtract", "modulus",//binary operator
             "field", "to_date", "date_format", "to_char",
-            "year", "month", "day", "quarter", "week", "now", "today", "date_add", "date_diff", "date_part",
+            "year", "month", "day", "quarter", "week", "now", "today", "date_add", "date_diff", "date_trunc", "date_part",
             "eval" // to support evaluate test-case expression
     );
 
@@ -253,6 +253,44 @@ public class SQLFunctions {
             "    } " +
             "} ";
 
+    public final static String DATE_TRUNC_FUNCTION = "date_trunc";
+    public final static String DATE_TRUNC_FUNCTION_BODY = "" +
+            "Long date_trunc(String date_type, Object o) { " +
+            "    def v = o; if (v == null || v == 0L) return null; " +
+            "    Date d = new Date(v); if (d == null) return null; " +
+            "    Calendar c = Calendar.getInstance(); " +
+            "    c.setTime(d); " +
+            "    if (date_type.equalsIgnoreCase('year')) { " +
+            "        c.set(Calendar.MONTH, 0); " +
+            "        c.set(Calendar.DAY_OF_MONTH, 1); " +
+            "        c.set(Calendar.HOUR_OF_DAY, 0); " +
+            "        c.set(Calendar.MINUTE, 0); " +
+            "        c.set(Calendar.SECOND, 0); " +
+            "        c.set(Calendar.MILLISECOND, 0); " +
+            "    } else if (date_type.equalsIgnoreCase('month')) { " +
+            "        c.set(Calendar.DAY_OF_MONTH, 1); " +
+            "        c.set(Calendar.HOUR_OF_DAY, 0); " +
+            "        c.set(Calendar.MINUTE, 0); " +
+            "        c.set(Calendar.SECOND, 0); " +
+            "        c.set(Calendar.MILLISECOND, 0); " +
+            "    } else if (date_type.equalsIgnoreCase('day')) { " +
+            "        c.set(Calendar.HOUR_OF_DAY, 0); " +
+            "        c.set(Calendar.MINUTE, 0); " +
+            "        c.set(Calendar.SECOND, 0); " +
+            "        c.set(Calendar.MILLISECOND, 0); " +
+            "    } else if (date_type.equalsIgnoreCase('hour')) { " +
+            "        c.set(Calendar.MINUTE, 0); " +
+            "        c.set(Calendar.SECOND, 0); " +
+            "        c.set(Calendar.MILLISECOND, 0); " +
+            "    } else if (date_type.equalsIgnoreCase('minute')) { " +
+            "        c.set(Calendar.SECOND, 0); " +
+            "        c.set(Calendar.MILLISECOND, 0); " +
+            "    } else if (date_type.equalsIgnoreCase('second')) { " +
+            "        c.set(Calendar.MILLISECOND, 0); " +
+            "    } " +
+            "    return c.getTime().getTime(); " +
+            "}";
+
     public final static Map<String, String> extendFunctions = new TreeMap<>();
     static {
         extendFunctions.put(ROUND_FUNCTION, ROUND_FUNCTION_BODY);
@@ -271,6 +309,7 @@ public class SQLFunctions {
         extendFunctions.put(TODAY_FUNCTION, TODAY_FUNCTION_BODY);
         extendFunctions.put(DATE_ADD_FUNCTION, DATE_ADD_FUNCTION_BODY);
         extendFunctions.put(DATE_DIFF_FUNCTION, DATE_DIFF_FUNCTION_BODY);
+        extendFunctions.put(DATE_TRUNC_FUNCTION, DATE_TRUNC_FUNCTION_BODY);
     }
 
     public static Tuple<String, String> function(String methodName, List<KVValue> paramers, boolean returnValue, Map<String, String> functions) {
@@ -340,6 +379,10 @@ public class SQLFunctions {
 
             case "date_diff":
                 functionStr = dateDiff(paramers, functions);
+                break;
+
+            case "date_trunc":
+                functionStr = dateTrunc(paramers, functions);
                 break;
 
             case "pow":
@@ -635,6 +678,11 @@ public class SQLFunctions {
     public static Tuple<String, String> dateDiff(List<KVValue> parameters, Map<String, String> functions) {
         define(SQLFunctions.DATE_DIFF_FUNCTION, functions);
         return invoke(SQLFunctions.DATE_DIFF_FUNCTION, parameters.get(0), parameters.get(1), parameters.get(2));
+    }
+
+    public static Tuple<String, String> dateTrunc(List<KVValue> parameters, Map<String, String> functions) {
+        define(SQLFunctions.DATE_TRUNC_FUNCTION, functions);
+        return invoke(SQLFunctions.DATE_TRUNC_FUNCTION, parameters.get(0), parameters.get(1));
     }
 
     public static Tuple<String, String> log10(String strColumn, String valueName) {

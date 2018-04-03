@@ -203,6 +203,21 @@ public class PaesSQLFunctionsTest {
     }
 
     @Test
+    public void dateTrunc() throws Exception {
+        String query = "SELECT createTime, " +
+                "to_char(date_trunc('second',  createTime)) trunc_second, " +
+                "to_char(date_trunc('minute',  createTime)) trunc_minute, " +
+                "to_char(date_trunc('hour',  createTime)) trunc_hour, " +
+                "to_char(date_trunc('day',  createTime)) trunc_day, " +
+                "to_char(date_trunc('month',  createTime)) trunc_month, " +
+                "to_char(date_trunc('year',  createTime)) trunc_year " +
+                " FROM " + TestsConstants.PAES_TEST_INDEX + "/account";
+        printQuery(query);
+        CSVResult csvResult = getCsvResult(false, query);
+        print(csvResult);
+    }
+
+    @Test
     public void selectAllFunctions() throws Exception {
         String query = "SELECT *" +
                 " FROM " + TestsConstants.PAES_TEST_INDEX + "/account";
