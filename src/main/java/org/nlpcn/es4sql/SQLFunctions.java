@@ -74,7 +74,9 @@ public class SQLFunctions {
     public final static String TO_DATE_FUNCTION_BODY = "" +
             "Long to_date(Object o, String pattern) {" +
             "   def v = o; if (v == null || v == '' || v == 0) return null; " +
-            "   Date d = (v instanceof String) ? new SimpleDateFormat(pattern).parse(v) : new Date(v); " +
+            "   SimpleDateFormat sdf = new SimpleDateFormat(pattern);" +
+            "   sdf.setTimeZone(TimeZone.getTimeZone('GMT'));" +
+            "   Date d = (v instanceof String) ? sdf.parse(v) : new Date(v); " +
 //            "   SimpleDateFormat sdf = new SimpleDateFormat(\"yyyy-MM-dd'T'HH:mm:ss.SSSXXX\"); " +
 //            "   return sdf.format(d);" +
             "   return d.getTime();" +
@@ -89,7 +91,9 @@ public class SQLFunctions {
             "String to_char(Object o, String pattern) {" +
             "    def v = o; if (v == null) return null;" +
             "    if (v instanceof String) return (String)v;" +
-            "    return new SimpleDateFormat(pattern).format(new Date(v));" +
+            "    SimpleDateFormat sdf = new SimpleDateFormat(pattern);" +
+            "    sdf.setTimeZone(TimeZone.getTimeZone('GMT'));" +
+            "    return sdf.format(new Date(v));" +
             "}" +
             " " +
             "String to_char(Object o) {" +
@@ -148,7 +152,7 @@ public class SQLFunctions {
             "Long year(Object o) { " +
             "    def v = o; if (v == null || v == 0L) return null; " +
             "    Date d = new Date(v); if (d == null) return null; " +
-            "    Calendar c = Calendar.getInstance(); " +
+            "    Calendar c = Calendar.getInstance(TimeZone.getTimeZone('GMT')); " +
             "    c.setTime(d); " +
             "    int year = c.get(Calendar.YEAR); " +
             "    return year; " +
@@ -159,7 +163,7 @@ public class SQLFunctions {
             "Long month(Object o) { " +
             "    def v = o; if (v == null || v == 0L) return null; " +
             "    Date d = new Date(v); if (d == null) return null; " +
-            "    Calendar c = Calendar.getInstance(); " +
+            "    Calendar c = Calendar.getInstance(TimeZone.getTimeZone('GMT')); " +
             "    c.setTime(d); " +
             "    int month = c.get(Calendar.MONTH); " +
             "    return month + 1; " +
@@ -170,7 +174,7 @@ public class SQLFunctions {
             "Long week(Object o) { " +
             "    def v = o; if (v == null || v == 0L) return null; " +
             "    Date d = new Date(v); if (d == null) return null; " +
-            "    Calendar c = Calendar.getInstance(); " +
+            "    Calendar c = Calendar.getInstance(TimeZone.getTimeZone('GMT')); " +
             "    c.setTime(d); " +
             "    int week = c.get(Calendar.WEEK_OF_YEAR); " +
             "    return week; " +
@@ -181,7 +185,7 @@ public class SQLFunctions {
             "Long day(Object o) { " +
             "    def v = o; if (v == null || v == 0L) return null; " +
             "    Date d = new Date(v); if (d == null) return null; " +
-            "    Calendar c = Calendar.getInstance(); " +
+            "    Calendar c = Calendar.getInstance(TimeZone.getTimeZone('GMT')); " +
             "    c.setTime(d); " +
             "    int day = c.get(Calendar.DAY_OF_MONTH); " +
             "    return day; " +
@@ -192,7 +196,7 @@ public class SQLFunctions {
             "Integer quarter(Object o) { " +
             "    def v = o; if (v == null || v == 0L) return null; " +
             "    Date d = new Date(v); if (d == null) return null; " +
-            "    Calendar c = Calendar.getInstance(); " +
+            "    Calendar c = Calendar.getInstance(TimeZone.getTimeZone('GMT')); " +
             "    c.setTime(d); " +
             " " +
             "    int month = c.get(Calendar.MONTH); " +
@@ -213,7 +217,7 @@ public class SQLFunctions {
     public final static String TODAY_FUNCTION = "today";
     public final static String TODAY_FUNCTION_BODY = "" +
             "Long today() { " +
-            "    Calendar todayStart = Calendar.getInstance(); " +
+            "    Calendar todayStart = Calendar.getInstance(TimeZone.getTimeZone('GMT')); " +
             "    todayStart.set(Calendar.HOUR_OF_DAY, 0); " +
             "    todayStart.set(Calendar.MINUTE, 0); " +
             "    todayStart.set(Calendar.SECOND, 0); " +
@@ -227,7 +231,7 @@ public class SQLFunctions {
             "Long date_add(String date_type, int interval, Object o) { " +
             "    def v = o; if (v == null || v == 0L) return null; " +
             "    Date d = new Date(v); if (d == null) return null; " +
-            "    Calendar c = Calendar.getInstance(); " +
+            "    Calendar c = Calendar.getInstance(TimeZone.getTimeZone('GMT')); " +
             "    c.setTime(d); " +
             "    if (date_type.equalsIgnoreCase('year')) { " +
             "        c.add(Calendar.YEAR, interval); " +
@@ -274,7 +278,7 @@ public class SQLFunctions {
             "Long date_trunc(String date_type, Object o) { " +
             "    def v = o; if (v == null || v == 0L) return null; " +
             "    Date d = new Date(v); if (d == null) return null; " +
-            "    Calendar c = Calendar.getInstance(); " +
+            "    Calendar c = Calendar.getInstance(TimeZone.getTimeZone('GMT')); " +
             "    c.setTime(d); " +
             "    if (date_type.equalsIgnoreCase('year')) { " +
             "        c.set(Calendar.MONTH, 0); " +
@@ -312,7 +316,7 @@ public class SQLFunctions {
             "Long date_part(String date_type, Object o) { " +
             "    def v = o; if (v == null || v == 0L) return null; " +
             "    Date d = new Date(v); if (d == null) return null; " +
-            "    Calendar c = Calendar.getInstance(); " +
+            "    Calendar c = Calendar.getInstance(TimeZone.getTimeZone('GMT')); " +
             "    c.setTime(d); " +
             "    if (date_type.equalsIgnoreCase('year')) { " +
             "        int year = c.get(Calendar.YEAR); " +

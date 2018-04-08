@@ -202,11 +202,11 @@ public class PaesSQLFunctionsTest {
     @Test
     public void dateDiff() throws Exception {
         String query = "SELECT createTime, " +
-                "date_diff('day', to_date('2015-03-16 21:27:33.953'), createTime) diff_day, " +
-                "date_diff('week', to_date('2015-03-16 21:27:33.953'), createTime) diff_week, " +
-                "date_diff('month', to_date('2015-03-16 21:27:33.953'), createTime) diff_month, " +
-                "date_diff('quarter', to_date('2015-03-16 21:27:33.953'), createTime) diff_quterr, " +
-                "date_diff('year', to_date('2015-03-16 21:27:33.953'), createTime) diff_year " +
+                "date_diff('day', to_date('2015-03-17 13:27:33.953'), createTime) diff_day, " +
+                "date_diff('week', to_date('2015-03-17 13:27:33.953'), createTime) diff_week, " +
+                "date_diff('month', to_date('2015-03-17 13:27:33.953'), createTime) diff_month, " +
+                "date_diff('quarter', to_date('2015-03-17 13:27:33.953'), createTime) quarter, " +
+                "date_diff('year', to_date('2015-03-17 13:27:33.953'), createTime) diff_year " +
                 " FROM " + TestsConstants.PAES_TEST_INDEX + "/account";
         printQuery(query);
         CSVResult csvResult = getCsvResult(false, query);
