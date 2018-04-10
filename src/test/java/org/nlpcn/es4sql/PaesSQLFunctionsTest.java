@@ -42,9 +42,17 @@ public class PaesSQLFunctionsTest {
     }
 
     @Test
+    public void date_range() throws Exception {
+        String query = "SELECT count(age), min(age), max(age), avg(age) FROM paes/account GROUP BY  date_range(alias='createTime', field='createTime', format='yyyy-MM-dd' ,'2014-05-1','2016-05-1','now-1y','now', 'now+1y')";
+        printQuery(query);
+        CSVResult csvResult = getCsvResult(false, query);
+        print(csvResult);
+    }
+
+    @Test
     public void aggWithNestFunc() throws Exception {
         String query = "SELECT sum(pow(age, 2)) as sum_pow " +
-                "FROM " + TestsConstants.PAES_TEST_INDEX + "/account";
+                "FROM " + TestsConstants.PAES_TEST_INDEX + "/account group by gender";
         printQuery(query);
         CSVResult csvResult = getCsvResult(false, query);
         print(csvResult);
@@ -390,7 +398,7 @@ public class PaesSQLFunctionsTest {
                 "min(balance) as min_balance, " +
                 "max(balance) as max_balance, " +
                 "avg(balance) as avg_balance " +
-                "FROM " + TestsConstants.PAES_TEST_INDEX + "/account group by gender";
+                "FROM " + TestsConstants.PAES_TEST_INDEX + "/account";
         printQuery(query);
         CSVResult csvResult = getCsvResult(false, query);
         print(csvResult);

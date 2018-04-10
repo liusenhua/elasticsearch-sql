@@ -270,7 +270,8 @@ public class FieldMaker {
             } else if (object instanceof SQLAggregateExpr) {
                 SQLAggregateExpr mExpr = (SQLAggregateExpr) object;
                 String methodName = mExpr.getMethodName();
-                MethodField abc = makeMethodField(methodName, mExpr.getArguments(), null, null, tableAlias, true, functions);
+                String fieldAlias = methodName.toLowerCase() + "_" + SQLFunctions.random();
+                MethodField abc = makeMethodField(methodName, mExpr.getArguments(), null, fieldAlias, tableAlias, true, functions);
                 reference.add(abc);
                 String path = abc.getAlias();
                 String refValue = "params." + path.trim();
@@ -304,10 +305,9 @@ public class FieldMaker {
             finalMethodName = "script";
         }
 
-        if (Select.isAggFunction(finalMethodName)) {
-            if (alias == null) {
-                alias = finalMethodName.toLowerCase() + "_" + SQLFunctions.random();//paramers.get(0).value.toString();
-            }
+        //  give an alias name for reference fields
+        if (alias == null && reference.size() > 0) {
+            alias = finalMethodName.toLowerCase() + "_" + SQLFunctions.random();
         }
 
         if (first) {
