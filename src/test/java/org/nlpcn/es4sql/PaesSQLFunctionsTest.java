@@ -33,9 +33,46 @@ public class PaesSQLFunctionsTest {
 
     @Test
     public void debug() throws Exception {
-//        String query = "SELECT log(2, CASE  when ((sex1)) <= (0) THEN null ELSE ((sex1)) END) as C2117434807 from custom " +
-//                "WHERE cardhold_city_name IS NOT NULL AND cust_no is not null   limit 0 , 51";
-        String query = "SELECT insert_time FROM paes/account WHERE date_custom BETWEEN '2014/08/18' AND '2017/08/21' LIMIT 3";
+        String query = "select *" +
+                " FROM " + TestsConstants.PAES_TEST_INDEX + "/account";
+        printQuery(query);
+        CSVResult csvResult = getCsvResult(false, query);
+        print(csvResult);
+    }
+
+    @Test
+    public void condition() throws Exception {
+        String query = "select *" +
+                " FROM " + TestsConstants.PAES_TEST_INDEX + "/account" +
+                " WHERE createTime < '2017-01-01'";
+        printQuery(query);
+        CSVResult csvResult = getCsvResult(false, query);
+        print(csvResult);
+    }
+
+    @Test
+    public void conditionWithBetween() throws Exception {
+        String query = "select *" +
+                " FROM " + TestsConstants.PAES_TEST_INDEX + "/account" +
+                " WHERE createTime BETWEEN '2016-01-01' AND '2018/01/01'";
+        printQuery(query);
+        CSVResult csvResult = getCsvResult(false, query);
+        print(csvResult);
+    }
+
+    @Test
+    public void conditionWithFunction() throws Exception {
+        String query = "SELECT *" +
+                " FROM " + TestsConstants.PAES_TEST_INDEX + "/account" +
+                " WHERE createTime > to_date('2016-01-01', 'yyyy-MM-dd') AND createTime <= to_date('2018/01/01', 'yyyy/MM/dd')";
+        printQuery(query);
+        CSVResult csvResult = getCsvResult(false, query);
+        print(csvResult);
+    }
+
+    @Test
+    public void date_histogram() throws Exception {
+        String query = "SELECT count(age), min(age), max(age), avg(age) FROM paes/account GROUP BY date_histogram(alias='createTime',field='createTime','interval'='180d')";
         printQuery(query);
         CSVResult csvResult = getCsvResult(false, query);
         print(csvResult);
@@ -43,7 +80,15 @@ public class PaesSQLFunctionsTest {
 
     @Test
     public void date_range() throws Exception {
-        String query = "SELECT count(age), min(age), max(age), avg(age) FROM paes/account GROUP BY  date_range(alias='createTime', field='createTime', format='yyyy-MM-dd' ,'2014-05-1','2016-05-1','now-1y','now', 'now+1y')";
+        String query = "SELECT count(age), min(age), max(age), avg(age) FROM paes/account GROUP BY date_range(alias='createTime', field='createTime','2014-05-1','2016-05-1','now-1y','now', 'now+1y')";
+        printQuery(query);
+        CSVResult csvResult = getCsvResult(false, query);
+        print(csvResult);
+    }
+
+    @Test
+    public void date_range_with_format() throws Exception {
+        String query = "SELECT count(age), min(age), max(age), avg(age) FROM paes/account GROUP BY date_range(alias='createTime', field='createTime', format='yyyy-MM-dd' ,'2014-05-1','2016-05-1','now-1y','now', 'now+1y')";
         printQuery(query);
         CSVResult csvResult = getCsvResult(false, query);
         print(csvResult);

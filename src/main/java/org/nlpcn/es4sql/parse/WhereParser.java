@@ -1,5 +1,6 @@
 package org.nlpcn.es4sql.parse;
 
+import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
@@ -36,6 +37,8 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
 
 /**
  * Created by allwefantasy on 9/2/16.
@@ -454,13 +457,22 @@ public class WhereParser {
     }
 
     private MethodField parseSQLMethodInvokeExprWithFunctionInWhere(SQLMethodInvokeExpr soExpr) throws SqlParseException {
+        Map<String, String> functions = new TreeMap<>();
 
         MethodField methodField = FieldMaker.makeMethodField(soExpr.getMethodName(),
                 soExpr.getParameters(),
                 null,
                 null,
                 query != null ? query.getFrom().getAlias() : null,
-                false);
+                false,
+                functions);
+
+        String functionsScript = Joiner.on(" ").join(functions.values()).trim();
+        if (functionsScript != "" && methodField.getName().equalsIgnoreCase("script")) {
+            String newScript = functionsScript + " " + methodField.getParams().get(1).value;
+            methodField.getParams().get(1).value = newScript;
+        }
+
         return methodField;
     }
 
