@@ -431,11 +431,9 @@ public class AggMaker {
         return geoHashGrid;
     }
 
-    private static final String TIME_FARMAT = "yyyy-MM-dd HH:mm:ss";
-
     private ValuesSourceAggregationBuilder dateRange(MethodField field) {
         String alias = gettAggNameFromParamsOrAlias(field);
-        DateRangeAggregationBuilder dateRange = AggregationBuilders.dateRange(alias).format(TIME_FARMAT);
+        DateRangeAggregationBuilder dateRange = AggregationBuilders.dateRange(alias);
 
         String value = null;
         List<String> ranges = new ArrayList<>();
@@ -476,7 +474,7 @@ public class AggMaker {
      */
     private DateHistogramAggregationBuilder dateHistogram(MethodField field) throws SqlParseException {
         String alias = gettAggNameFromParamsOrAlias(field);
-        DateHistogramAggregationBuilder dateHistogram = AggregationBuilders.dateHistogram(alias).format(TIME_FARMAT);
+        DateHistogramAggregationBuilder dateHistogram = AggregationBuilders.dateHistogram(alias);
         String value = null;
         for (KVValue kv : field.getParams()) {
             value = kv.value.toString();
