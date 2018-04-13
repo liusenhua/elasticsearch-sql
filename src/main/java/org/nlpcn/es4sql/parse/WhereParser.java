@@ -49,6 +49,8 @@ public class WhereParser {
     private SQLDeleteStatement delete;
     private SQLExpr where;
     private SqlParser sqlParser;
+    private Map<String, String> sqlFunctions = new TreeMap<>();
+    private boolean concatSqlFunctionScript = true;
 
     public WhereParser(SqlParser sqlParser, MySqlSelectQueryBlock query) {
         this.sqlParser = sqlParser;
@@ -69,6 +71,14 @@ public class WhereParser {
 
     public WhereParser(SqlParser sqlParser) {
         this.sqlParser = sqlParser;
+    }
+
+    public void concatSqlFunction(boolean enable) {
+        this.concatSqlFunctionScript = enable;
+    }
+
+    public Map<String, String> getSqlFunctions() {
+        return sqlFunctions;
     }
 
     public Where findWhere() throws SqlParseException {
@@ -457,7 +467,7 @@ public class WhereParser {
     }
 
     private MethodField parseSQLMethodInvokeExprWithFunctionInWhere(SQLMethodInvokeExpr soExpr) throws SqlParseException {
-        Map<String, String> functions = new TreeMap<>();
+        Map<String, String> functions = this.sqlFunctions;
 
         MethodField methodField = FieldMaker.makeMethodField(soExpr.getMethodName(),
                 soExpr.getParameters(),
@@ -467,10 +477,12 @@ public class WhereParser {
                 false,
                 functions);
 
-        String functionsScript = Joiner.on(" ").join(functions.values()).trim();
-        if (functionsScript != "" && methodField.getName().equalsIgnoreCase("script")) {
-            String newScript = functionsScript + " " + methodField.getParams().get(1).value;
-            methodField.getParams().get(1).value = newScript;
+        if (concatSqlFunctionScript) {
+            String functionsScript = Joiner.on(" ").join(functions.values()).trim();
+            if (functionsScript != "" && methodField.getName().equalsIgnoreCase("script")) {
+                String newScript = functionsScript + " " + methodField.getParams().get(1).value;
+                methodField.getParams().get(1).value = newScript;
+            }
         }
 
         return methodField;

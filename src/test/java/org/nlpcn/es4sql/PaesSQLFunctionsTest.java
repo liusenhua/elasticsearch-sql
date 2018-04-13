@@ -167,6 +167,28 @@ public class PaesSQLFunctionsTest {
     }
 
     @Test
+    public void caseWhenWithFunction() throws Exception {
+        String query = "SELECT date_custom as T1,\n" +
+                "       concat(date_part('year', (createTime)), '-', case\n" +
+                "         when date_part('month', (createTime)) < 10 then\n" +
+                "          concat('0', '', date_part('month', (createTime)))\n" +
+                "         else\n" +
+                "          concat(date_part('month', (createTime)), '')\n" +
+                "       end, '-', case\n" +
+                "         when date_part('day', (createTime)) < 10 then\n" +
+                "          concat('0', '', date_part('day', (createTime)))\n" +
+                "         else\n" +
+                "          concat(date_part('day', (createTime)), '')\n" +
+                "       end) as T2\n" +
+                " FROM " + TestsConstants.PAES_TEST_INDEX + "/account\n" +
+                " WHERE (date_custom < to_date(('2016-12-30'), 'yyyy-MM-dd')) limit 15 offset 0\n";
+
+        printQuery(query);
+        CSVResult csvResult = getCsvResult(false, query);
+        print(csvResult);
+    }
+
+    @Test
     public void nest() throws Exception {
         String query = "SELECT * from (SELECT * from paes/account WHERE gender = 'F') T";
         printQuery(query);

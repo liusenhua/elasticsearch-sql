@@ -53,10 +53,12 @@ public class FieldMaker {
             SQLAggregateExpr sExpr = (SQLAggregateExpr) expr;
             return makeMethodField(sExpr.getMethodName(), sExpr.getArguments(), sExpr.getOption(), alias, tableAlias, true);
         } else if (expr instanceof SQLCaseExpr) {
-            String scriptCode = new CaseWhenParser((SQLCaseExpr) expr, alias, tableAlias).parse();
+            CaseWhenParser caseWhenParser = new CaseWhenParser((SQLCaseExpr) expr, alias, tableAlias);
+            String scriptCode = caseWhenParser.parse();
+            Map<String, String> sqlFunctions = caseWhenParser.getSqlFunctions();
             SQLMethodInvokeExpr mExpr = new SQLMethodInvokeExpr("eval", null);
             mExpr.addParameter(new SQLCharExpr(scriptCode));
-            return makeMethodField(mExpr.getMethodName(), mExpr.getParameters(), null, null, tableAlias, true);
+            return makeMethodField(mExpr.getMethodName(), mExpr.getParameters(), null, null, tableAlias, true, sqlFunctions);
         } else {
             throw new SqlParseException("unknown field name : " + expr);
         }
@@ -258,7 +260,11 @@ public class FieldMaker {
                     ));
                 } else throw new SqlParseException("only support script/nested/children as inner functions");
             } else if (object instanceof SQLCaseExpr) {
-                String scriptCode = new CaseWhenParser((SQLCaseExpr) object, alias, tableAlias).parse();
+                CaseWhenParser caseWhenParser = new CaseWhenParser((SQLCaseExpr) object, alias, tableAlias);
+                String scriptCode = caseWhenParser.parse();
+                Map<String, String> functionsInCaseWhen = caseWhenParser.getSqlFunctions();
+                functions.putAll(functionsInCaseWhen);
+
                 SQLMethodInvokeExpr mExpr = new SQLMethodInvokeExpr("eval", null);
                 mExpr.addParameter(new SQLCharExpr(scriptCode));
                 MethodField abc = makeMethodField(mExpr.getMethodName(), mExpr.getParameters(), null, null, tableAlias, Select.isAggFunction(finalMethodName), functions);

@@ -592,7 +592,7 @@ public class SQLFunctions {
     public static Tuple<String, String> eval(String a, Map<String, String> functions) {
         String name = "eval_" + random();
         String func = "func_" + random();
-        String func_body = "def " + func + "(def doc) { " + a + " }";
+        String func_body = "def " + func + "(def doc) { " + "try {" + a + "} catch (Exception e) { return null;}" + " }";
         define(func, func_body, functions);
         return new Tuple<>(name, "def " + name + " = " + func + "(doc)");
     }
