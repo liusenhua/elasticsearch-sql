@@ -10,7 +10,7 @@
     "script_fields" : {
         "test" : {
             "script" : {
-                "inline" : "if((doc['value'].value >= 100 && doc['value'].value <=200)){'aaa'} else {doc['value'].value}",
+                "inline" : "def func_853018376(def doc) { try { if((doc['value'].value >= 100 && doc['value'].value <=200)){return 'aaa';} else {return doc['value'].value;}} catch (Exception e) { return null;} } def eval_575234613 = func_853018376(doc);return eval_575234613;",
                 "lang" : "painless"
             },
             "ignore_failure" : false
