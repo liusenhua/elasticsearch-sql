@@ -971,7 +971,7 @@ public class SqlParserTests {
                 String scriptCode = (String) methodField.getParams().get(1).value;
                 Assert.assertEquals(alias, "testBaseLevel");
 
-                Matcher docValue = Pattern.compile("\\{\\s+null\\s+}").matcher(scriptCode);
+                Matcher docValue = Pattern.compile("\\{\\s*return\\snull;\\s*}").matcher(scriptCode);
 
                 AtomicInteger docValueCounter = new AtomicInteger();
 
@@ -979,7 +979,7 @@ public class SqlParserTests {
                     docValueCounter.incrementAndGet();
                 }
 
-                Assert.assertTrue(docValueCounter.get() == 1);
+                Assert.assertTrue(docValueCounter.get() > 0);
 
             }
         }

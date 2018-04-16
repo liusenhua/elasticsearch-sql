@@ -58,7 +58,7 @@ public class FieldMaker {
             Map<String, String> sqlFunctions = caseWhenParser.getSqlFunctions();
             SQLMethodInvokeExpr mExpr = new SQLMethodInvokeExpr("eval", null);
             mExpr.addParameter(new SQLCharExpr(scriptCode));
-            return makeMethodField(mExpr.getMethodName(), mExpr.getParameters(), null, null, tableAlias, true, sqlFunctions);
+            return makeMethodField(mExpr.getMethodName(), mExpr.getParameters(), null, alias, tableAlias, true, sqlFunctions);
         } else {
             throw new SqlParseException("unknown field name : " + expr);
         }
