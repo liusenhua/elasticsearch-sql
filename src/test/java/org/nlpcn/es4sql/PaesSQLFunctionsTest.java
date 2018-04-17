@@ -189,14 +189,6 @@ public class PaesSQLFunctionsTest {
     }
 
     @Test
-    public void nest() throws Exception {
-        String query = "SELECT * from (SELECT * from paes/account WHERE gender = 'F') T";
-        printQuery(query);
-        CSVResult csvResult = getCsvResult(false, query);
-        print(csvResult);
-    }
-
-    @Test
     public void toNumber() throws Exception {
         String query = "SELECT " +
                 "to_number(255) num, to_number('255') num_to_str, to_number('255a') bad_str, " +

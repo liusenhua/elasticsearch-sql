@@ -87,24 +87,12 @@ public class PaesMainTestSuite {
                 "        \"date_detection\": true,\n" +
                 "        \"numeric_detection\": false,\n" +
                 "        \"properties\": {\n" +
-                "            \"account_number\": {\n" +
-                "                \"type\": \"long\"\n" +
-                "            },\n" +
-                "            \"address\": {\n" +
-                "                \"type\": \"keyword\"\n" +
-                "            },\n" +
-                "            \"age\": {\n" +
-                "                \"type\": \"long\"\n" +
-                "            },\n" +
                 "            \"balance\": {\n" +
-                "                \"type\": \"long\"\n" +
-                "            },\n" +
-                "            \"city\": {\n" +
-                "                \"type\": \"keyword\"\n" +
+                "                \"type\": \"float\"\n" +
                 "            },\n" +
                 "            \"createTime\": {\n" +
                 "                \"type\": \"date\",\n" +
-                "                \"format\": \"yyyy-MM-dd HH:mm:ss.SSS\"\n" +
+                "                \"format\": \"yyyy-MM-dd HH:mm:ss.SSS||yyyy-MM-dd HH:mm:ss||yyyy-MM-dd||yyyyMMdd||yyyy/MM/dd||epoch_millis\"\n" +
                 "            },\n" +
                 "            \"date_basic\": {\n" +
                 "                \"type\": \"date\",\n" +
@@ -113,24 +101,6 @@ public class PaesMainTestSuite {
                 "            \"date_custom\": {\n" +
                 "                \"type\": \"date\",\n" +
                 "                \"format\": \"yyyy/MM/dd\"\n" +
-                "            },\n" +
-                "            \"email\": {\n" +
-                "                \"type\": \"keyword\"\n" +
-                "            },\n" +
-                "            \"employer\": {\n" +
-                "                \"type\": \"keyword\"\n" +
-                "            },\n" +
-                "            \"firstname\": {\n" +
-                "                \"type\": \"keyword\"\n" +
-                "            },\n" +
-                "            \"gender\": {\n" +
-                "                \"type\": \"keyword\"\n" +
-                "            },\n" +
-                "            \"lastname\": {\n" +
-                "                \"type\": \"keyword\"\n" +
-                "            },\n" +
-                "            \"state\": {\n" +
-                "                \"type\": \"keyword\"\n" +
                 "            }\n" +
                 "        }\n" +
                 "    }\n" +
@@ -204,12 +174,13 @@ public class PaesMainTestSuite {
         String port = System.getenv("ES_TEST_PORT");
 
         if(host == null) {
-            //host = "10.20.13.82";
+            //host = "localhost";
             host = "10.14.192.198";
             //System.out.println("ES_TEST_HOST enviroment variable does not exist. choose default 'localhost'");
         }
 
         if(port == null) {
+            //port = "9300";
             port = "9350";
             //System.out.println("ES_TEST_PORT enviroment variable does not exist. choose default '9300'");
         }
