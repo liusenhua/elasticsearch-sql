@@ -652,7 +652,7 @@ public class SQLFunctions {
     }
 
     private static String convertType(KVValue param) {
-        if (param.valueType == KVValue.ValueType.REFERENCE || param.valueType == KVValue.ValueType.REFERENCE) {
+        if (param.valueType == KVValue.ValueType.EVALUATED || param.valueType == KVValue.ValueType.REFERENCE) {
             //for now ,if variant is string,then change to double.
             String temp = param.key;
 
