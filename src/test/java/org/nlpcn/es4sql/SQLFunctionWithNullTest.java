@@ -39,7 +39,7 @@ public class SQLFunctionWithNullTest {
 
     @Test
     public void debug() throws Exception {
-        String query = "select *" +
+        String query = "select field(createTime), field(date_basic), field(date_custom)" +
                 " FROM " + TestsConstants.TEST_INDEX + "/account_with_null";
         printQuery(query);
         CSVResult csvResult = getCsvResult(false, query);
@@ -57,10 +57,20 @@ public class SQLFunctionWithNullTest {
     }
 
     @Test
+    public void conditionWithIn() throws Exception {
+        String query = "select *" +
+                " FROM " + TestsConstants.TEST_INDEX + "/account_with_null" +
+                " WHERE createTime in (to_date('2017-01-01'), to_date('2016-01-01'))";
+        printQuery(query);
+        CSVResult csvResult = getCsvResult(false, query);
+        print(csvResult);
+    }
+
+    @Test
     public void conditionWithBetween() throws Exception {
         String query = "select *" +
                 " FROM " + TestsConstants.TEST_INDEX + "/account_with_null" +
-                " WHERE createTime BETWEEN '2016-01-01' AND '2018/01/01'";
+                " WHERE createTime BETWEEN to_date('2016_01_01', 'yyyy_MM-dd') AND to_date('2018_01_01', 'yyyy_MM-dd')";
         printQuery(query);
         CSVResult csvResult = getCsvResult(false, query);
         print(csvResult);
@@ -78,7 +88,9 @@ public class SQLFunctionWithNullTest {
 
     @Test
     public void date_histogram() throws Exception {
-        String query = "SELECT count(age), min(age), max(age), avg(age) FROM paes/account_with_null GROUP BY date_histogram(alias='createTime',field='createTime','interval'='180d')";
+        String query = "SELECT count(age), min(age), max(age), avg(age)" +
+                " FROM " + TestsConstants.TEST_INDEX + "/account_with_null" +
+                " GROUP BY date_histogram(alias='createTime',field='createTime','interval'='180d')";
         printQuery(query);
         CSVResult csvResult = getCsvResult(false, query);
         print(csvResult);
@@ -86,7 +98,9 @@ public class SQLFunctionWithNullTest {
 
     @Test
     public void date_range() throws Exception {
-        String query = "SELECT count(age), min(age), max(age), avg(age) FROM paes/account_with_null GROUP BY date_range(alias='createTime', field='createTime','2014-05-1','2016-05-1','now-1y','now', 'now+1y')";
+        String query = "SELECT count(age), min(age), max(age), avg(age)" +
+                " FROM " + TestsConstants.TEST_INDEX + "/account_with_null" +
+                " GROUP BY date_range(alias='createTime', field='createTime', '2014-05-1','2016-05-1','now-1y','now', 'now+1y')";
         printQuery(query);
         CSVResult csvResult = getCsvResult(false, query);
         print(csvResult);
@@ -94,7 +108,9 @@ public class SQLFunctionWithNullTest {
 
     @Test
     public void date_range_with_format() throws Exception {
-        String query = "SELECT count(age), min(age), max(age), avg(age) FROM paes/account_with_null GROUP BY date_range(alias='createTime', field='createTime', format='yyyy-MM-dd' ,'2014-05-1','2016-05-1','now-1y','now', 'now+1y')";
+        String query = "SELECT count(age), min(age), max(age), avg(age)" +
+                " FROM " + TestsConstants.TEST_INDEX + "/account_with_null" +
+                " GROUP BY date_range(alias='createTime', field='createTime', format='yyyy/MM/dd' ,'2014/05/1','2016/05/1','now-1y','now', 'now+1y')";
         printQuery(query);
         CSVResult csvResult = getCsvResult(false, query);
         print(csvResult);

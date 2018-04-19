@@ -170,7 +170,7 @@ public class MainTestSuite {
                 "            },\n" +
                 "            \"createTime\": {\n" +
                 "                \"type\": \"date\",\n" +
-                "                \"format\": \"yyyy-MM-dd HH:mm:ss.SSS||yyyy-MM-dd HH:mm:ss||yyyy-MM-dd||yyyyMMdd||yyyy/MM/dd||epoch_millis\"\n" +
+                "                \"format\": \"yyyy-MM-dd HH:mm:ss.SSS||yyyy-MM-dd\"\n" +
                 "            },\n" +
                 "            \"date_basic\": {\n" +
                 "                \"type\": \"date\",\n" +
@@ -230,7 +230,7 @@ public class MainTestSuite {
 				"            },\n" +
 				"            \"createTime\": {\n" +
 				"                \"type\": \"date\",\n" +
-				"                \"format\": \"yyyy-MM-dd HH:mm:ss.SSS||yyyy-MM-dd HH:mm:ss||yyyy-MM-dd||yyyyMMdd||yyyy/MM/dd||epoch_millis\"\n" +
+				"                \"format\": \"yyyy-MM-dd HH:mm:ss.SSS||yyyy-MM-dd\"\n" +
 				"            },\n" +
 				"            \"date_basic\": {\n" +
 				"                \"type\": \"date\",\n" +
