@@ -477,14 +477,6 @@ public class WhereParser {
                 false,
                 functions);
 
-        if (concatSqlFunctionScript) {
-            String functionsScript = Joiner.on(" ").join(functions.values()).trim();
-            if (functionsScript != "" && methodField.getName().equalsIgnoreCase("script")) {
-                String newScript = functionsScript + " " + methodField.getParams().get(1).value;
-                methodField.getParams().get(1).value = newScript;
-            }
-        }
-
         return methodField;
     }
 
@@ -540,6 +532,13 @@ public class WhereParser {
         }
 
         String finalStr = v1Dec + v2Dec + v1 + " " + operator + " " + v2;
+
+        if (concatSqlFunctionScript) {
+            String functionsScript = Joiner.on(" ").join(this.sqlFunctions.values()).trim();
+            if (functionsScript != "") {
+                finalStr = functionsScript + " " + finalStr;
+            }
+        }
 
         SQLMethodInvokeExpr scriptMethod = new SQLMethodInvokeExpr("script", null);
         scriptMethod.addParameter(new SQLCharExpr(finalStr));

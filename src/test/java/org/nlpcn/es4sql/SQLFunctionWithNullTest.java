@@ -50,7 +50,8 @@ public class SQLFunctionWithNullTest {
     public void condition() throws Exception {
         String query = "select *" +
                 " FROM " + TestsConstants.TEST_INDEX + "/account_with_null" +
-                " WHERE createTime < '2017-01-01'";
+                " WHERE date_part('year', createTime) = date_part('year', now())" +
+                " OR ( date_diff('year', createTime, now()) = 2 AND date_part('month', createTime) = 3 )";
         printQuery(query);
         CSVResult csvResult = getCsvResult(false, query);
         print(csvResult);
