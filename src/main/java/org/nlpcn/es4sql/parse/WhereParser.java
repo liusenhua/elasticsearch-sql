@@ -294,6 +294,10 @@ public class WhereParser {
             }
         } else if (expr instanceof SQLInListExpr) {
             SQLInListExpr siExpr = (SQLInListExpr) expr;
+            if (explanSpecialInCondWithFunction(siExpr, where)) {
+                return;
+            }
+
             String leftSide = siExpr.getExpr().toString();
 
             boolean isNested = false;
@@ -324,7 +328,12 @@ public class WhereParser {
 
             where.addWhere(condition);
         } else if (expr instanceof SQLBetweenExpr) {
+
             SQLBetweenExpr between = ((SQLBetweenExpr) expr);
+            if (explanSpecialBetweenCondWithFunction(between, where)) {
+                return;
+            }
+
             String leftSide = between.getTestExpr().toString();
 
             boolean isNested = false;
@@ -464,6 +473,65 @@ public class WhereParser {
         } else {
             throw new SqlParseException("err find condition " + expr.getClass());
         }
+    }
+
+    private boolean explanSpecialBetweenCondWithFunction(SQLBetweenExpr bExpr, Where where) throws SqlParseException {
+        SQLBetweenExpr between = bExpr;
+        SQLExpr leftSide = between.getTestExpr();
+        SQLExpr beginExpr = between.getBeginExpr();
+        SQLExpr endExpr = between.getEndExpr();
+        if (leftSide instanceof SQLMethodInvokeExpr
+                || beginExpr instanceof SQLMethodInvokeExpr
+                || endExpr instanceof  SQLMethodInvokeExpr) {
+            SQLBinaryOpExpr gth = new SQLBinaryOpExpr(leftSide, SQLBinaryOperator.GreaterThanOrEqual, beginExpr);
+            SQLBinaryOpExpr lth = new SQLBinaryOpExpr(leftSide, SQLBinaryOperator.LessThanOrEqual, endExpr);
+            SQLBinaryOpExpr and = new SQLBinaryOpExpr(gth, SQLBinaryOperator.BooleanAnd, lth);
+            parseWhere(and, where);
+            return true;
+        }
+        return false;
+    }
+
+    private boolean explanSpecialInCondWithFunction(SQLInListExpr inListExpr , Where where) throws SqlParseException {
+        SQLExpr leftSide = inListExpr.getExpr();
+        List<SQLExpr> targetList = inListExpr.getTargetList();
+
+        if (targetList.size() < 1) {
+            return false;
+        }
+
+        boolean support = false;
+        if (leftSide instanceof SQLMethodInvokeExpr) {
+            support = true;
+        }
+
+        for (SQLExpr expr: targetList) {
+            if (expr instanceof SQLMethodInvokeExpr) {
+                support = true;
+                break;
+            }
+        }
+
+        List<SQLBinaryOpExpr> sqlBinaryOpExprList = new ArrayList<>();
+        if (support) {
+            for (SQLExpr expr: targetList) {
+                SQLBinaryOpExpr eqExpr = new SQLBinaryOpExpr(leftSide, SQLBinaryOperator.Equality, expr);
+                sqlBinaryOpExprList.add(eqExpr);
+            }
+
+            int size = targetList.size();
+            SQLExpr orExpr = sqlBinaryOpExprList.get(size - 1);
+            for (int i = size - 2; i >=0; --i) {
+                SQLExpr leftExpr = sqlBinaryOpExprList.get(i);
+                orExpr = new SQLBinaryOpExpr(leftExpr, SQLBinaryOperator.BooleanOr, orExpr);
+            }
+
+            parseWhere(orExpr, where);
+
+            return true;
+        }
+
+        return false;
     }
 
     private MethodField parseSQLMethodInvokeExprWithFunctionInWhere(SQLMethodInvokeExpr soExpr) throws SqlParseException {

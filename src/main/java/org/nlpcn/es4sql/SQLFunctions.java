@@ -76,10 +76,12 @@ public class SQLFunctions {
             "   def v = o; if (v == null || v == '' || v == 0) return null; " +
             "   SimpleDateFormat sdf = new SimpleDateFormat(pattern);" +
             "   sdf.setTimeZone(TimeZone.getTimeZone('GMT'));" +
-            "   Date d = (v instanceof String) ? sdf.parse(v) : new Date(v); " +
-//            "   SimpleDateFormat sdf = new SimpleDateFormat(\"yyyy-MM-dd'T'HH:mm:ss.SSSXXX\"); " +
-//            "   return sdf.format(d);" +
-            "   return d.getTime();" +
+            "   try { " +
+            "       Date d = (v instanceof String) ? sdf.parse(v) : new Date(v); " +
+            "       return d.getTime(); " +
+            "   } catch (Exception e) {" +
+            "       return null; " +
+            "   }" +
             "}" +
             " " +
             "Long to_date(Object o) {" +

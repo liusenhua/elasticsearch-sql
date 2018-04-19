@@ -61,7 +61,7 @@ public class SQLFunctionWithNullTest {
     public void conditionWithIn() throws Exception {
         String query = "select *" +
                 " FROM " + TestsConstants.TEST_INDEX + "/account_with_null" +
-                " WHERE createTime in (to_date('2017-01-01'), to_date('2016-01-01'))";
+                " WHERE to_char(createTime, 'yyyy-MM-dd') in ('2016-03-16', '2016-03-17')";
         printQuery(query);
         CSVResult csvResult = getCsvResult(false, query);
         print(csvResult);
@@ -71,7 +71,17 @@ public class SQLFunctionWithNullTest {
     public void conditionWithBetween() throws Exception {
         String query = "select *" +
                 " FROM " + TestsConstants.TEST_INDEX + "/account_with_null" +
-                " WHERE createTime BETWEEN to_date('2016_01_01', 'yyyy_MM-dd') AND to_date('2018_01_01', 'yyyy_MM-dd')";
+                " WHERE age BETWEEN 20 AND 30";
+        printQuery(query);
+        CSVResult csvResult = getCsvResult(false, query);
+        print(csvResult);
+    }
+
+    @Test
+    public void conditionWithBetweenAndInnerFunction() throws Exception {
+        String query = "select *" +
+                " FROM " + TestsConstants.TEST_INDEX + "/account_with_null" +
+                " WHERE createTime BETWEEN to_date('2015_03_17', 'yyyy_MM_dd') AND to_date('2018/01/01', 'yyyy/MM/dd')";
         printQuery(query);
         CSVResult csvResult = getCsvResult(false, query);
         print(csvResult);
