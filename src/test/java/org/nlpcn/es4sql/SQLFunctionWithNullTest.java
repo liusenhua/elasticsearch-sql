@@ -111,7 +111,7 @@ public class SQLFunctionWithNullTest {
     public void date_range() throws Exception {
         String query = "SELECT count(age), min(age), max(age), avg(age)" +
                 " FROM " + TestsConstants.TEST_INDEX + "/account_with_null" +
-                " GROUP BY date_range(alias='createTime', field='createTime', '2014-05-1','2016-05-1','now-1y','now', 'now+1y')";
+                " GROUP BY date_range(alias='createTime', field='createTime', format = 'yyyy/MM/dd||yy-MM-dd', '2014/05/1','2016-05-1','now-1y','now', 'now+1y')";
         printQuery(query);
         CSVResult csvResult = getCsvResult(false, query);
         print(csvResult);
