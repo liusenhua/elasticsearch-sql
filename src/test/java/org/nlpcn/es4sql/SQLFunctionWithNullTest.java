@@ -382,7 +382,7 @@ public class SQLFunctionWithNullTest {
 
     @Test
     public void operationBetweenColumn() throws Exception {
-        String query = "SELECT (account_with_null_number + age) * 2" +
+        String query = "SELECT (account_number + age) * 2" +
                 " FROM " + TestsConstants.TEST_INDEX + "/account_with_null";
         printQuery(query);
         CSVResult csvResult = getCsvResult(false, query);
