@@ -176,6 +176,9 @@ public abstract class Maker {
 		case BETWEEN:
 		case NBETWEEN:
             x = QueryBuilders.rangeQuery(name).gte(((Object[]) value)[0]).lte(((Object[]) value)[1]);
+            if (cond.getFormat() != null) {
+                ((RangeQueryBuilder)x).format(cond.getFormat());
+            }
 			break;
         case GEO_INTERSECTS:
             String wkt = cond.getValue().toString();

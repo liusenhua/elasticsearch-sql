@@ -35,10 +35,7 @@ import org.nlpcn.es4sql.spatial.SpatialParamsFactory;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.TreeMap;
+import java.util.*;
 
 /**
  * Created by allwefantasy on 9/2/16.
@@ -330,6 +327,10 @@ public class WhereParser {
         } else if (expr instanceof SQLBetweenExpr) {
 
             SQLBetweenExpr between = ((SQLBetweenExpr) expr);
+            if (explanSpecialBetweenCondWithDateLiterals(between, where)) {
+                return;
+            }
+
             if (explanSpecialBetweenCondWithFunction(between, where)) {
                 return;
             }
@@ -473,6 +474,96 @@ public class WhereParser {
         } else {
             throw new SqlParseException("err find condition " + expr.getClass());
         }
+    }
+
+    // the date literals is: to_date('2018-04-20', 'yyyy-MM-dd')
+    private boolean isDateLiteral(SQLExpr expr) {
+        if (expr instanceof  SQLMethodInvokeExpr) {
+            SQLMethodInvokeExpr methodInvokeExpr = (SQLMethodInvokeExpr) expr;
+            String method = methodInvokeExpr.getMethodName();
+            if (method.equalsIgnoreCase("to_date")) {
+                List<SQLExpr> parameters = methodInvokeExpr.getParameters();
+                if (parameters.size() >=2) {
+                    if (parameters.get(0) instanceof SQLCharExpr && parameters.get(1) instanceof SQLCharExpr) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+    // the date literals is: to_date('2018-04-20', 'yyyy-MM-dd')
+    private Map<String, String> parseDateLiteral(SQLExpr expr) {
+        if (expr instanceof  SQLMethodInvokeExpr) {
+            SQLMethodInvokeExpr methodInvokeExpr = (SQLMethodInvokeExpr) expr;
+            String method = methodInvokeExpr.getMethodName();
+            if (method.equalsIgnoreCase("to_date")) {
+                List<SQLExpr> parameters = methodInvokeExpr.getParameters();
+                if (parameters.size() >= 2) {
+                    if (parameters.get(0) instanceof SQLCharExpr && parameters.get(1) instanceof SQLCharExpr) {
+                        Map<String, String> date = new HashMap<>();
+                        date.put("value", ((SQLCharExpr) parameters.get(0)).getText());
+                        date.put("format", ((SQLCharExpr) parameters.get(1)).getText());
+                        if (parameters.size() == 3 && parameters.get(2) instanceof SQLCharExpr) {
+                            date.put("timeZone", ((SQLCharExpr) parameters.get(1)).getText());
+                        }
+
+                        return date;
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
+    private boolean explanSpecialBetweenCondWithDateLiterals(SQLBetweenExpr bExpr, Where where) throws SqlParseException {
+        SQLBetweenExpr between = bExpr;
+        SQLExpr testExpr = between.getTestExpr();
+        SQLExpr beginExpr = between.getBeginExpr();
+        SQLExpr endExpr = between.getEndExpr();
+        Map<String, String> beginDate = parseDateLiteral(beginExpr);
+        Map<String, String> endDate = parseDateLiteral(endExpr);
+        if ((testExpr instanceof SQLIdentifierExpr || testExpr instanceof SQLPropertyExpr) &&
+                beginDate != null && endDate != null) {
+
+            boolean isNested = false;
+            boolean isChildren = false;
+
+            String leftSide = between.getTestExpr().toString();
+
+            NestedType nestedType = new NestedType();
+            if (nestedType.tryFillFromExpr(between.getTestExpr())) {
+                leftSide = nestedType.field;
+
+                isNested = true;
+            }
+
+            ChildrenType childrenType = new ChildrenType();
+            if (childrenType.tryFillFromExpr(between.getTestExpr())) {
+                leftSide = childrenType.field;
+
+                isChildren = true;
+            }
+
+            String format = beginDate.get("format");
+            if (!format.equals(endDate.get("format"))) {
+                format = format + "||" + endDate.get("format");
+            }
+
+            Condition condition = null;
+            String opear = "AND";
+            if (isNested)
+                condition = new Condition(Where.CONN.valueOf(opear), leftSide, null, between.isNot() ? "NOT BETWEEN" : "BETWEEN", new Object[]{beginDate.get("value"), endDate.get("value")}, null, nestedType, format);
+            else if (isChildren)
+                condition = new Condition(Where.CONN.valueOf(opear), leftSide, null, between.isNot() ? "NOT BETWEEN" : "BETWEEN", new Object[]{beginDate.get("value"), endDate.get("value")}, null, childrenType, format);
+            else
+                condition = new Condition(Where.CONN.valueOf(opear), leftSide, null, between.isNot() ? "NOT BETWEEN" : "BETWEEN", new Object[]{beginDate.get("value"), endDate.get("value")}, null, null, format);
+
+            where.addWhere(condition);
+            return true;
+        }
+        return false;
     }
 
     private boolean explanSpecialBetweenCondWithFunction(SQLBetweenExpr bExpr, Where where) throws SqlParseException {
