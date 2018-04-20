@@ -228,6 +228,10 @@ public class WhereParser {
     private void explanCond(String opear, SQLExpr expr, Where where) throws SqlParseException {
         if (expr instanceof SQLBinaryOpExpr) {
             SQLBinaryOpExpr soExpr = (SQLBinaryOpExpr) expr;
+            if (explanSpecialBinaryOpWithDateLiterals(opear, soExpr, where)) {
+                return;
+            }
+
             boolean methodAsOpear = false;
 
             boolean isNested = false;
@@ -327,7 +331,7 @@ public class WhereParser {
         } else if (expr instanceof SQLBetweenExpr) {
 
             SQLBetweenExpr between = ((SQLBetweenExpr) expr);
-            if (explanSpecialBetweenCondWithDateLiterals(between, where)) {
+            if (explanSpecialBetweenCondWithDateLiterals(opear, between, where)) {
                 return;
             }
 
@@ -517,7 +521,41 @@ public class WhereParser {
         return null;
     }
 
-    private boolean explanSpecialBetweenCondWithDateLiterals(SQLBetweenExpr bExpr, Where where) throws SqlParseException {
+    private boolean explanSpecialBinaryOpWithDateLiterals(String opear, SQLBinaryOpExpr bExpr, Where where) throws SqlParseException {
+        SQLExpr leftExpr = bExpr.getLeft();
+        SQLExpr rightExpr = bExpr.getRight();
+        Map<String, String> date = parseDateLiteral(rightExpr);
+        if ((leftExpr instanceof SQLIdentifierExpr || leftExpr instanceof SQLPropertyExpr) && date != null) {
+            boolean isNested = false;
+            boolean isChildren = false;
+            NestedType nestedType = new NestedType();
+            if (nestedType.tryFillFromExpr(leftExpr)) {
+                bExpr.setLeft(new SQLIdentifierExpr(nestedType.field));
+                isNested = true;
+            }
+
+            ChildrenType childrenType = new ChildrenType();
+            if (childrenType.tryFillFromExpr(leftExpr)) {
+                bExpr.setLeft(new SQLIdentifierExpr(childrenType.field));
+                isChildren = true;
+            }
+
+            String format = date.get("format");
+            Condition condition = null;
+            if (isNested)
+                condition = new Condition(Where.CONN.valueOf(opear), bExpr.getLeft().toString(), bExpr.getLeft(), bExpr.getOperator().name, date.get("value"), bExpr.getRight(), nestedType, format);
+            else if (isChildren)
+                condition = new Condition(Where.CONN.valueOf(opear), bExpr.getLeft().toString(), bExpr.getLeft(), bExpr.getOperator().name, date.get("value"), bExpr.getRight(), childrenType, format);
+            else
+                condition = new Condition(Where.CONN.valueOf(opear), bExpr.getLeft().toString(), bExpr.getLeft(), bExpr.getOperator().name, date.get("value"), bExpr.getRight(), null, format);
+
+            where.addWhere(condition);
+            return true;
+        }
+        return false;
+    }
+
+    private boolean explanSpecialBetweenCondWithDateLiterals(String opear, SQLBetweenExpr bExpr, Where where) throws SqlParseException {
         SQLBetweenExpr between = bExpr;
         SQLExpr testExpr = between.getTestExpr();
         SQLExpr beginExpr = between.getBeginExpr();
@@ -552,7 +590,6 @@ public class WhereParser {
             }
 
             Condition condition = null;
-            String opear = "AND";
             if (isNested)
                 condition = new Condition(Where.CONN.valueOf(opear), leftSide, null, between.isNot() ? "NOT BETWEEN" : "BETWEEN", new Object[]{beginDate.get("value"), endDate.get("value")}, null, nestedType, format);
             else if (isChildren)
