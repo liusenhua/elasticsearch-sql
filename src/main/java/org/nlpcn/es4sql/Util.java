@@ -1,9 +1,6 @@
 package org.nlpcn.es4sql;
 
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -13,6 +10,8 @@ import com.alibaba.druid.sql.ast.statement.SQLJoinTableSource;
 import com.alibaba.druid.sql.ast.statement.SQLSelectQueryBlock;
 import com.alibaba.druid.sql.ast.statement.SQLTableSource;
 import com.alibaba.druid.sql.ast.statement.SQLUnionQuery;
+import groovy.lang.Binding;
+import groovy.lang.GroovyShell;
 import org.nlpcn.es4sql.domain.Field;
 import org.nlpcn.es4sql.domain.KVValue;
 import org.nlpcn.es4sql.exception.SqlParseException;
@@ -227,6 +226,16 @@ public class Util {
             content = matcher.replaceAll(entry.getValue());
         }
         return content;
+    }
+
+    public static Object evalScript(String script) throws Exception{
+        Binding binding = new Binding();
+        GroovyShell shell = new GroovyShell(binding);
+        //invoke method
+        Object ret = shell.evaluate(script);
+        shell = null;
+        binding = null;
+        return ret;
     }
 
 }

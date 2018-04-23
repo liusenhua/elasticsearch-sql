@@ -49,6 +49,7 @@
 		<elasticsearch.plugin.jvm>true</elasticsearch.plugin.jvm>
 		<elasticsearch.version>5.4.3</elasticsearch.version>
 		<elasticsearch.plugin.classname>org.elasticsearch.plugin.nlpcn.SqlPlug</elasticsearch.plugin.classname>
+		<groovy.version>2.4.3</groovy.version>
 	</properties>
 
 
@@ -138,6 +139,11 @@
             <version>15.0</version>
         </dependency>
 
+		<dependency>
+			<groupId>org.codehaus.groovy</groupId>
+			<artifactId>groovy</artifactId>
+			<version>${groovy.version}</version>
+		</dependency>
 
     </dependencies>
 

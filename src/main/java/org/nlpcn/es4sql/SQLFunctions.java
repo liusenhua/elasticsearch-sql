@@ -452,13 +452,6 @@ public class SQLFunctions {
                 functionStr = datePart(paramers, functions);
                 break;
 
-            case "pow":
-                functionStr = pow(
-                        Util.expr2Object((SQLExpr) paramers.get(0).value).toString(),
-                        Util.expr2Object((SQLExpr) paramers.get(1).value).toString(),
-                        paramers.get(0).key);
-                break;
-
             case "round":
                 functionStr = round(paramers, functions);
                 break;
@@ -469,9 +462,6 @@ public class SQLFunctions {
                 break;
 
             case "log10":
-                functionStr = log10(Util.expr2Object((SQLExpr) paramers.get(0).value).toString(), paramers.get(0).key);
-                break;
-
             case "floor":
             case "ceil":
             case "cbrt":
@@ -479,10 +469,11 @@ public class SQLFunctions {
             case "exp":
             case "sqrt":
             case "abs":
-                functionStr = mathSingleValueTemplate("Math."+methodName,
-                        methodName,
-                        Util.expr2Object((SQLExpr) paramers.get(0).value).toString(),
-                        paramers.get(0).key);
+                functionStr = mathFuncTemplate(methodName, paramers.get(0));
+                break;
+
+            case "pow":
+                functionStr = mathFuncTemplate(methodName, paramers.get(0), paramers.get(1));
                 break;
 
             case "substr":
@@ -766,46 +757,18 @@ public class SQLFunctions {
         return invoke(SQLFunctions.DATE_PART_FUNCTION, parameters.get(0), parameters.get(1));
     }
 
-    public static Tuple<String, String> log10(String strColumn, String valueName) {
-
-        return mathSingleValueTemplate("Math.log10", "log10", strColumn, valueName);
-
+    private static Tuple<String, String> mathFuncTemplate(String methodName, KVValue arg) {
+        return invoke("Math." + methodName, methodName + "_" + random(), arg);
     }
 
-    public static Tuple<String, String> sqrt(String strColumn, String valueName) {
-
-        return mathSingleValueTemplate("Math.sqrt", "sqrt",  strColumn, valueName);
-
-    }
-
-    public static Tuple<String, String> round(String strColumn, String valueName) {
-
-        return mathSingleValueTemplate("Math.round","round", strColumn, valueName);
-
-    }
-
-    public static Tuple<String, String> pow(String strColumn, String exponent, String valueName) {
-
-        return mathTwoValueTemplate("Math.pow","pow", strColumn, exponent, valueName);
-
+    private static Tuple<String, String> mathFuncTemplate(String methodName, KVValue arg1, KVValue arg2) {
+        return invoke("Math." + methodName, methodName + "_" + random(), arg1, arg2);
     }
 
     public static Tuple<String, String> trim(String strColumn, String valueName) {
 
         return strSingleValueTemplate("trim", strColumn, valueName);
 
-    }
-
-    private static Tuple<String, String> mathSingleValueTemplate(String methodName, String strColumn, String valueName) {
-        return mathSingleValueTemplate(methodName,methodName, strColumn,valueName);
-    }
-    private static Tuple<String, String> mathSingleValueTemplate(String methodName, String fieldName, String strColumn, String valueName) {
-        String name = fieldName + "_" + random();
-        if (valueName == null) {
-            return new Tuple<>(name, "def " + name + " = " + methodName + "(doc['" + strColumn + "'].value)");
-        } else {
-            return new Tuple<>(name, strColumn + ";def " + name + " = " + methodName + "(" + valueName + ")");
-        }
     }
 
     public static Tuple<String, String> strSingleValueTemplate(String methodName, String strColumn, String valueName) {
@@ -815,21 +778,6 @@ public class SQLFunctions {
         } else {
             return new Tuple(name, strColumn + "; def " + name + " = " + valueName + "." + methodName + "()");
         }
-
-    }
-
-    private static Tuple<String, String> mathTwoValueTemplate(String methodName, String fieldName, String strColumn, String second, String valueName) {
-        String name = fieldName + "_" + random();
-        if (valueName == null) {
-            return new Tuple<>(name, "def " + name + " = " + methodName + "(doc['" + strColumn + "'].value," + second +")");
-        } else {
-            return new Tuple<>(name, strColumn + ";def " + name + " = " + methodName + "(" + valueName + "," + second + ")");
-        }
-    }
-
-    public static Tuple<String, String> floor(String strColumn, String valueName) {
-
-        return mathSingleValueTemplate("Math.floor", "floor",strColumn, valueName);
 
     }
 
@@ -907,11 +855,15 @@ public class SQLFunctions {
 
     public static Tuple<String, String> invoke(String methodName, KVValue arg1 ) {
         String name = methodName + "_" + random();
+        return invoke(methodName, name, arg1);
+    }
+
+    public static Tuple<String, String> invoke(String methodName, String ret, KVValue arg1 ) {
         String template = "def ${RET} = ${FUNC}(${ARG1})";
 
         Map<String, String> map = new HashMap<>();
         map.put("FUNC", methodName);
-        map.put("RET", name);
+        map.put("RET", ret);
         map.put("ARG1", getValue(arg1));
         String script = Util.renderString(template, map);
 
@@ -922,16 +874,20 @@ public class SQLFunctions {
             }
         }
 
-        return new Tuple<>(name, script);
+        return new Tuple<>(ret, script);
     }
 
-    public static Tuple<String, String> invoke(String methodName, KVValue arg1, KVValue arg2 ) {
+    public static Tuple<String, String> invoke(String methodName, KVValue arg1, KVValue arg2) {
         String name = methodName + "_" + random();
+        return invoke(methodName, name, arg1, arg2);
+    }
+
+    public static Tuple<String, String> invoke(String methodName, String ret, KVValue arg1, KVValue arg2 ) {
         String template = "def ${RET} = ${FUNC}(${ARG1}, ${ARG2})";
 
         Map<String, String> map = new HashMap<>();
         map.put("FUNC", methodName);
-        map.put("RET", name);
+        map.put("RET", ret);
         map.put("ARG1", getValue(arg1));
         map.put("ARG2", getValue(arg2));
         String script = Util.renderString(template, map);
@@ -943,7 +899,7 @@ public class SQLFunctions {
             }
         }
 
-        return new Tuple<>(name, script);
+        return new Tuple<>(ret, script);
     }
 
     public static Tuple<String, String> invoke(String methodName, KVValue arg1, KVValue arg2, KVValue arg3 ) {

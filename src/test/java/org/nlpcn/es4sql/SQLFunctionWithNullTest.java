@@ -146,6 +146,15 @@ public class SQLFunctionWithNullTest {
     }
 
     @Test
+    public void aggWithCaseWhen2() throws Exception {
+        String query = "SELECT count(*), sum(age), CASE when gender='M' THEN '男' when gender='F' then '女' ELSE '其他' END as sex" +
+                " FROM " + TestsConstants.TEST_INDEX + "/account_with_null group by sex";
+        printQuery(query);
+        CSVResult csvResult = getCsvResult(false, query);
+        print(csvResult);
+    }
+
+    @Test
     public void aggWithOperationBefore() throws Exception {
         String query = "SELECT min(age * 3 + 1) as min" +
                 " FROM " + TestsConstants.TEST_INDEX + "/account_with_null";
@@ -184,6 +193,15 @@ public class SQLFunctionWithNullTest {
     @Test
     public void caseWhen() throws Exception {
         String query = "SELECT gender, CASE when (gender) = 'M' THEN '男' ELSE '女' END as sex " +
+                "FROM " + TestsConstants.TEST_INDEX + "/account_with_null";
+        printQuery(query);
+        CSVResult csvResult = getCsvResult(false, query);
+        print(csvResult);
+    }
+
+    @Test
+    public void caseWhen2() throws Exception {
+        String query = "SELECT gender, CASE when 12 < 0 THEN 0 ELSE 12 END as ret " +
                 "FROM " + TestsConstants.TEST_INDEX + "/account_with_null";
         printQuery(query);
         CSVResult csvResult = getCsvResult(false, query);
