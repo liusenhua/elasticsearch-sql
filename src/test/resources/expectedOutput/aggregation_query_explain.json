@@ -1,9 +1,13 @@
 {
-    "from": 0,
-    "size": 0,
-    "_source": {
-        "includes": [],
-        "excludes": [
+    "from" : 0,
+    "size" : 0,
+    "_source" : {
+        "includes" : [
+            "a",
+            "script",
+            "COUNT"
+        ],
+        "excludes" : [
             "*"
         ]
     },
