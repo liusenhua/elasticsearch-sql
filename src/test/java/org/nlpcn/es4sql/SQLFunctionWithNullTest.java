@@ -41,6 +41,7 @@ public class SQLFunctionWithNullTest {
     public void debug() throws Exception {
         String query = "select field(createTime), field(date_basic), field(date_custom)" +
                 " FROM " + TestsConstants.TEST_INDEX + "/account_with_null";
+        query = "SELECT count(*),  sum(balance) as s1 FROM elasticsearch-sql_test_index/account_with_null group by to_char(createTime, 'yyyy') ";
         printQuery(query);
         CSVResult csvResult = getCsvResult(false, query);
         print(csvResult);
@@ -339,6 +340,7 @@ public class SQLFunctionWithNullTest {
                 "to_char(date_trunc('hour',  createTime)) trunc_hour, " +
                 "to_char(date_trunc('day',  createTime)) trunc_day, " +
                 "to_char(date_trunc('month',  createTime)) trunc_month, " +
+                "to_char(date_trunc('quarter',  createTime)) trunc_quarter, " +
                 "to_char(date_trunc('year',  createTime)) trunc_year " +
                 " FROM " + TestsConstants.TEST_INDEX + "/account_with_null";
         printQuery(query);
@@ -355,6 +357,7 @@ public class SQLFunctionWithNullTest {
                 "date_part('hour',  createTime) hour, " +
                 "date_part('day',  createTime) day, " +
                 "date_part('month',  createTime) month, " +
+                "date_part('quarter',  createTime) quarter, " +
                 "date_part('year',  createTime) year " +
                 " FROM " + TestsConstants.TEST_INDEX + "/account_with_null";
         printQuery(query);

@@ -11,6 +11,6 @@
 {"index":{"_type": "account_with_null", "_id":"6"}}
 {"account_number":600,"balance":null,"firstname":"Virginia","lastname":"","age":39,"gender":"F","address":"171 Putnam Avenue","employer":"Filodyne","email":"virginiaayala@filodyne.com","city":"Nicholson","state":"PA", "createTime": "2017-03-16 13:27:33.953", "date_basic":"20170316", "date_custom":"2017/03/16"}
 {"index":{"_type": "account_with_null", "_id":"7"}}
-{"account_number":700,"balance":-200.5,"firstname":"Dillard","lastname":"Mcpherson","age":34,"gender":"F","address":"702 Quentin Street","employer":"Quailcom","email":"dillardmcpherson@quailcom.com","city":"Veguita","state":"IN", "createTime": "2018-03-16 13:27:33.953", "date_basic":"20180316", "date_custom":"2018/03/16"}
+{"account_number":700,"balance":-200.5,"firstname":"Dillard","lastname":"Mcpherson","age":34,"gender":"F","address":"702 Quentin Street","employer":"Quailcom","email":"dillardmcpherson@quailcom.com","city":"Veguita","state":"IN", "createTime": "2018-08-16 13:27:33.953", "date_basic":"20180816", "date_custom":"2018/08/16"}
 {"index":{"_type": "account_with_null", "_id":"8"}}
-{"account_number":800,"firstname":"Leta","lastname":"Stout","age":39,"gender":"F","address":"518 Bowery Street","employer":"Pivitol","email":"letastout@pivitol.com","city":"Boonville","state":"ND", "createTime": "2018-04-16 13:27:33.953", "date_basic":"20180416", "date_custom":"2018/04/16"}
+{"account_number":800,"balance":0,"firstname":"Leta","lastname":"Stout","age":39,"gender":"F","address":"518 Bowery Street","employer":"Pivitol","email":"letastout@pivitol.com","city":"Boonville","state":"ND", "createTime": "2018-10-16 13:27:33.953", "date_basic":"20181016", "date_custom":"2018/10/16"}

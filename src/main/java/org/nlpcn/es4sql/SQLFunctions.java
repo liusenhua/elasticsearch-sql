@@ -289,6 +289,14 @@ public class SQLFunctions {
             "        c.set(Calendar.MINUTE, 0); " +
             "        c.set(Calendar.SECOND, 0); " +
             "        c.set(Calendar.MILLISECOND, 0); " +
+            "    } else if (date_type.equalsIgnoreCase('quarter')) { " +
+            "        int month = (c.get(Calendar.MONTH) / 3) * 3;" +
+            "        c.set(Calendar.MONTH, month); " +
+            "        c.set(Calendar.DAY_OF_MONTH, 1); " +
+            "        c.set(Calendar.HOUR_OF_DAY, 0); " +
+            "        c.set(Calendar.MINUTE, 0); " +
+            "        c.set(Calendar.SECOND, 0); " +
+            "        c.set(Calendar.MILLISECOND, 0); " +
             "    } else if (date_type.equalsIgnoreCase('month')) { " +
             "        c.set(Calendar.DAY_OF_MONTH, 1); " +
             "        c.set(Calendar.HOUR_OF_DAY, 0); " +
@@ -323,6 +331,12 @@ public class SQLFunctions {
             "    if (date_type.equalsIgnoreCase('year')) { " +
             "        int year = c.get(Calendar.YEAR); " +
             "        return year; " +
+            "    } else if (date_type.equalsIgnoreCase('quarter')) { " +
+            "        int month = c.get(Calendar.MONTH); " +
+            "        if (month == Calendar.JANUARY || month == Calendar.FEBRUARY || month == Calendar.MARCH) return 1; " +
+            "        else if (month == Calendar.APRIL || month == Calendar.MAY || month == Calendar.JUNE) return 2; " +
+            "        else if (month == Calendar.JULY || month == Calendar.AUGUST || month == Calendar.SEPTEMBER) return 3; " +
+            "        else if (month == Calendar.OCTOBER || month == Calendar.NOVEMBER || month == Calendar.DECEMBER) return 4; " +
             "    } else if (date_type.equalsIgnoreCase('month')) { " +
             "        int month = c.get(Calendar.MONTH); " +
             "        return month + 1; " +
