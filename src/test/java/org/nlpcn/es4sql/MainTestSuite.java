@@ -485,11 +485,13 @@ public class MainTestSuite {
 		String port = System.getenv("ES_TEST_PORT");
 
 		if(host == null) {
+			//host = "10.14.192.198";
 			host = "localhost";
 			System.out.println("ES_TEST_HOST enviroment variable does not exist. choose default 'localhost'");
 		}
 
 		if(port == null) {
+			//port = "9350";
 			port = "9300";
 			System.out.println("ES_TEST_PORT enviroment variable does not exist. choose default '9300'");
 		}

@@ -16,10 +16,7 @@ import org.nlpcn.es4sql.domain.MethodField;
 import org.nlpcn.es4sql.domain.Where;
 import org.nlpcn.es4sql.exception.SqlParseException;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.TreeMap;
+import java.util.*;
 
 /**
  * Created by allwefantasy on 9/3/16.
@@ -43,6 +40,7 @@ public class CaseWhenParser {
     public String parse() throws SqlParseException {
         List<String> result = new ArrayList<String>();
 
+        List<String> conditions = new ArrayList<>();
         boolean addIfStatement = false;
         for (SQLCaseExpr.Item item : caseExpr.getItems()) {
             SQLExpr conditionExpr = item.getConditionExpr();
@@ -59,16 +57,19 @@ public class CaseWhenParser {
 
             result.add(statementCodes);
 
+            // collect condition codes
             if (addIfStatement == false) {
                 addIfStatement = true;
-                result.add("if(" + conditionCodes + ")" + "{" + parseValueExpr(item.getValueExpr()) + "}");
+                conditions.add("if(" + conditionCodes + ")" + "{" + parseValueExpr(item.getValueExpr()) + "}");
             } else {
-                result.add("else if(" + conditionCodes + ")" + "{" + parseValueExpr(item.getValueExpr()) + "}");
+                conditions.add("else if(" + conditionCodes + ")" + "{" + parseValueExpr(item.getValueExpr()) + "}");
             }
 
             // collect sql functions defined in condition expression
             this.sqlFunctions.putAll(parser.getSqlFunctions());
         }
+
+        result.addAll(conditions);
 
         SQLExpr elseExpr = caseExpr.getElseExpr();
         if (elseExpr == null) {
@@ -120,9 +121,20 @@ public class CaseWhenParser {
         }
         explainWhere(statements, conditions, where);
 
+        // Fix the "Extraneous if statement" IllegalArgumentException from ES
+        // by define a variable to hold the condition value.
+        List<String> conditionVariables = new ArrayList<>();
+        for (String condition: conditions) {
+            String conditionVariable = "condition_" + Math.abs(new Random().nextInt());
+            conditionVariables.add(conditionVariable);
+
+            String conditionStatement = "def " + conditionVariable + " = " + condition + ";";
+            statements.add(conditionStatement);
+        }
+
         String statementCodes = Joiner.on(" ").join(statements);
         String relation = where.getConn().name().equals("AND") ? " && " : " || ";
-        String conditionCodes = Joiner.on(relation).join(conditions);
+        String conditionCodes = Joiner.on(relation).join(conditionVariables);
 
         return new Tuple<>(statementCodes, conditionCodes);
     }

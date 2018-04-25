@@ -30,8 +30,8 @@ public class ExplainTest {
         String expectedOutput = Files.toString(new File("src/test/resources/expectedOutput/aggregation_query_explain.json"), StandardCharsets.UTF_8).replaceAll("\r","");
         String result = explain(String.format("SELECT a, CASE WHEN gender='0' then 'aaa' else 'bbb'end a2345,count(c) FROM %s GROUP BY terms('field'='a'),a2345", TEST_INDEX));
         assertThat(
-                result.replaceAll("\\s+","").replaceAll("func_\\d+", "func_").replaceAll("eval_\\d+", "eval_"),
-                equalTo(expectedOutput.replaceAll("\\s+","").replaceAll("func_\\d+", "func_").replaceAll("eval_\\d+", "eval_")));
+                result.replaceAll("\\s+","").replaceAll("func_\\d+", "func_").replaceAll("eval_\\d+", "eval_").replaceAll("condition_\\d+", "condition_"),
+                equalTo(expectedOutput.replaceAll("\\s+","").replaceAll("func_\\d+", "func_").replaceAll("eval_\\d+", "eval_").replaceAll("condition_\\d+", "condition_")));
     }
     
     @Test
@@ -39,8 +39,8 @@ public class ExplainTest {
         String expectedOutput = Files.toString(new File("src/test/resources/expectedOutput/script_value.json"), StandardCharsets.UTF_8).replaceAll("\r","");
         String result = explain(String.format("SELECT  case when gender is null then 'aaa'  else gender  end  test , cust_code FROM %s", TEST_INDEX));
         assertThat(
-                result.replaceAll("\\s+","").replaceAll("func_\\d+", "func_").replaceAll("eval_\\d+", "eval_"),
-                equalTo(expectedOutput.replaceAll("\\s+","").replaceAll("func_\\d+", "func_").replaceAll("eval_\\d+", "eval_")));
+                result.replaceAll("\\s+","").replaceAll("func_\\d+", "func_").replaceAll("eval_\\d+", "eval_").replaceAll("condition_\\d+", "condition_"),
+                equalTo(expectedOutput.replaceAll("\\s+","").replaceAll("func_\\d+", "func_").replaceAll("eval_\\d+", "eval_").replaceAll("condition_\\d+", "condition_")));
     }
     
     @Test
@@ -48,8 +48,8 @@ public class ExplainTest {
         String expectedOutput = Files.toString(new File("src/test/resources/expectedOutput/between_query.json"), StandardCharsets.UTF_8).replaceAll("\r","");
         String result = explain(String.format("SELECT  case when value between 100 and 200 then 'aaa'  else value  end  test , cust_code FROM %s", TEST_INDEX));
         assertThat(
-                result.replaceAll("\\s+","").replaceAll("func_\\d+", "func_").replaceAll("eval_\\d+", "eval_"),
-                equalTo(expectedOutput.replaceAll("\\s+","").replaceAll("func_\\d+", "func_").replaceAll("eval_\\d+", "eval_")));
+                result.replaceAll("\\s+","").replaceAll("func_\\d+", "func_").replaceAll("eval_\\d+", "eval_").replaceAll("condition_\\d+", "condition_"),
+                equalTo(expectedOutput.replaceAll("\\s+","").replaceAll("func_\\d+", "func_").replaceAll("eval_\\d+", "eval_").replaceAll("condition_\\d+", "condition_")));
     }
 
     @Test

@@ -41,7 +41,6 @@ public class SQLFunctionWithNullTest {
     public void debug() throws Exception {
         String query = "select field(createTime), field(date_basic), field(date_custom)" +
                 " FROM " + TestsConstants.TEST_INDEX + "/account_with_null";
-        query = "SELECT count(*),  sum(balance) as s1 FROM elasticsearch-sql_test_index/account_with_null group by to_char(createTime, 'yyyy') ";
         printQuery(query);
         CSVResult csvResult = getCsvResult(false, query);
         print(csvResult);
@@ -202,7 +201,7 @@ public class SQLFunctionWithNullTest {
 
     @Test
     public void caseWhen2() throws Exception {
-        String query = "SELECT gender, CASE when 12 < 0 THEN 0 ELSE 12 END as ret " +
+        String query = "SELECT gender, CASE when (12 < 0) && (3>0) THEN 0 when -1 < 0 then 6 ELSE 12 END as ret " +
                 "FROM " + TestsConstants.TEST_INDEX + "/account_with_null";
         printQuery(query);
         CSVResult csvResult = getCsvResult(false, query);

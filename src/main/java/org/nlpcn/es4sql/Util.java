@@ -10,9 +10,8 @@ import com.alibaba.druid.sql.ast.statement.SQLJoinTableSource;
 import com.alibaba.druid.sql.ast.statement.SQLSelectQueryBlock;
 import com.alibaba.druid.sql.ast.statement.SQLTableSource;
 import com.alibaba.druid.sql.ast.statement.SQLUnionQuery;
-import groovy.lang.Binding;
-import groovy.lang.GroovyShell;
-import org.nlpcn.es4sql.domain.Field;
+//import groovy.lang.Binding;
+//import groovy.lang.GroovyShell;
 import org.nlpcn.es4sql.domain.KVValue;
 import org.nlpcn.es4sql.exception.SqlParseException;
 
@@ -229,13 +228,14 @@ public class Util {
     }
 
     public static Object evalScript(String script) throws Exception{
-        Binding binding = new Binding();
-        GroovyShell shell = new GroovyShell(binding);
-        //invoke method
-        Object ret = shell.evaluate(script);
-        shell = null;
-        binding = null;
-        return ret;
+        throw new Exception("can't evaluate groovy script in plugin due to security issue");
+//        Binding binding = new Binding();
+//        GroovyShell shell = new GroovyShell(binding);
+//        //invoke method
+//        Object ret = shell.evaluate(script);
+//        shell = null;
+//        binding = null;
+//        return ret;
     }
 
 }
