@@ -1,9 +1,7 @@
 package org.nlpcn.es4sql.parse;
 
 import com.alibaba.druid.sql.ast.SQLExpr;
-import com.alibaba.druid.sql.ast.expr.SQLCaseExpr;
-import com.alibaba.druid.sql.ast.expr.SQLMethodInvokeExpr;
-import com.alibaba.druid.sql.ast.expr.SQLNullExpr;
+import com.alibaba.druid.sql.ast.expr.*;
 import com.alibaba.druid.util.StringUtils;
 import com.google.common.base.Joiner;
 import org.elasticsearch.common.collect.Tuple;
@@ -84,16 +82,23 @@ public class CaseWhenParser {
     private String parseValueExpr(SQLExpr expr) throws SqlParseException {
         if (expr instanceof SQLMethodInvokeExpr) {
             // return ((SQLMethodInvokeExpr) expr).toString();
-            return parseSQLMethodInvokeExpr((SQLMethodInvokeExpr) expr);
+            SQLMethodInvokeExpr mExpr = (SQLMethodInvokeExpr) expr;
+            return parseSQLMethodInvokeExpr(mExpr.getMethodName(), mExpr.getParameters());
+        } else if (expr instanceof SQLBinaryOpExpr) {
+            SQLMethodInvokeExpr mExpr = FieldMaker.makeBinaryMethodField((SQLBinaryOpExpr) expr, null, false);
+            return parseSQLMethodInvokeExpr(mExpr.getMethodName(), mExpr.getParameters());
+        } else if (expr instanceof SQLAggregateExpr) {
+            SQLAggregateExpr sExpr = (SQLAggregateExpr) expr;
+            return parseSQLMethodInvokeExpr(sExpr.getMethodName(), sExpr.getArguments());
         }
 
         return returnWrapper(Util.getScriptValueWithQuote(expr, "'").toString());
     }
 
-    private String parseSQLMethodInvokeExpr(SQLMethodInvokeExpr soExpr) throws SqlParseException {
+    private String parseSQLMethodInvokeExpr(String name, List<SQLExpr> arguments) throws SqlParseException {
         Map<String, String> functions = this.sqlFunctions;
-        MethodField methodField = FieldMaker.makeMethodField(soExpr.getMethodName(),
-                soExpr.getParameters(),
+        MethodField methodField = FieldMaker.makeMethodField(name,
+                arguments,
                 null,
                 null,
                 this.tableAlias,
@@ -101,7 +106,13 @@ public class CaseWhenParser {
                 functions);
 
         String ret = methodField.getParams().get(0).value.toString();
-        String script = methodField.getParams().size() == 2 ? methodField.getParams().get(1).value.toString() + ";" : "";
+        String script = "";
+        if (methodField.getParams().size() == 2) {
+            script = methodField.getParams().get(1).value.toString();
+            if (script != "" && !script.endsWith("}")) {
+                script = script + "; ";
+            }
+        }
         return script + returnWrapper(ret);
     }
 

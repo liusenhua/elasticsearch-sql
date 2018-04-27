@@ -544,8 +544,13 @@ public class SQLFunctions {
             }
 
             String generatedFieldName = functionStr.v1();
-            String returnCommand = ";return " + generatedFieldName +";" ;
-            String newScript = extendFunctionScript + " " + functionStr.v2() + returnCommand;
+            String returnCommand = "return " + generatedFieldName +";" ;
+            String newScript = extendFunctionScript + " " + functionStr.v2();
+            if (newScript.endsWith("}")) {
+                newScript = newScript + returnCommand;
+            } else {
+                newScript = newScript + "; " + returnCommand;
+            }
             functionStr = new Tuple<>(generatedFieldName, newScript);
         }
         return functionStr;
@@ -626,7 +631,10 @@ public class SQLFunctions {
 
     private static Tuple<String, String> binaryOpertator(String methodName, String operator, KVValue a, KVValue b) {
         String name = methodName + "_" + random();
-        //String template = "def ${RET} = null; if (${ARG1} != null && ${ARG2} != null) { ${RET} = ${ARG1} ${OP} ${ARG2}; }";
+
+        String template_check_both = "def ${RET} = null; if (${ARG1} != null && ${ARG2} != null) { ${RET} = ${ARG1} ${OP} ${ARG2}; }";
+        String template_check_a = "def ${RET} = null; if (${ARG1} != null) { ${RET} = ${ARG1} ${OP} ${ARG2}; }";
+        String template_check_b = "def ${RET} = null; if (${ARG2} != null) { ${RET} = ${ARG1} ${OP} ${ARG2}; }";
         String template = "def ${RET} = ${ARG1} ${OP} ${ARG2}";
 
         Map<String, String> map = new HashMap<>();
@@ -634,28 +642,51 @@ public class SQLFunctions {
         map.put("OP", operator);
         map.put("ARG1", getValue(a));
         map.put("ARG2", getValue(b));
-        String script = Util.renderString(template, map);
+
+        String script;
+        if (checkNull(a) && checkNull(b)) {
+            script = Util.renderString(template_check_both, map);
+        } else if (checkNull(a)) {
+            script = Util.renderString(template_check_a, map);
+        } else if (checkNull(b)) {
+            script = Util.renderString(template_check_b, map);
+        } else {
+            script = Util.renderString(template, map);
+        }
 
         String evaluateScript = "";
         List<KVValue> parameters = Arrays.asList(a, b);
         for (KVValue p: parameters) {
             if (p.valueType == KVValue.ValueType.EVALUATED) {
-                String str = Util.expr2Object((SQLExpr) p.value).toString();
-                if (!StringUtils.isEmpty(str)) {
-                    evaluateScript = evaluateScript +  "; " + str;
+                String str = Util.expr2Object((SQLExpr) p.value).toString().trim();
+                if (str != "" && !str.endsWith("}")) {
+                    str = str + "; ";
                 }
+                evaluateScript = evaluateScript  + str;
             }
             String str2 = convertType(p);
-            if (!StringUtils.isEmpty(str2)) {
-                evaluateScript = evaluateScript +  "; " + str2;
+            if (str2 !="" && !str2.endsWith("}")) {
+                str2 = str2 + "; ";
             }
+            evaluateScript = evaluateScript + str2;
         }
 
         if (evaluateScript != "") {
-            script = evaluateScript.substring(1) + "; " + script; // trim the ";'
+            script = evaluateScript + script;
         }
 
         return new Tuple<>(name, script);
+    }
+
+    private static  boolean checkNull(KVValue param) {
+        if (param.valueType == KVValue.ValueType.EVALUATED ||
+                param.valueType == KVValue.ValueType.REFERENCE ) {
+            return true;
+        } else if (isProperty((SQLExpr) param.value)) {
+            return true;
+        }
+
+        return false;
     }
 
     private static String convertType(KVValue param) {
@@ -884,7 +915,11 @@ public class SQLFunctions {
         List<KVValue> parameters = Arrays.asList(arg1);
         for (KVValue p: parameters) {
             if (p.valueType == KVValue.ValueType.EVALUATED) {
-                script = Util.expr2Object((SQLExpr) p.value).toString() + ";" + script;
+                String str = Util.expr2Object((SQLExpr) p.value).toString().trim();
+                if (str != "" && !str.endsWith("}")) {
+                    str = str + "; ";
+                }
+                script = str + script;
             }
         }
 
@@ -909,7 +944,11 @@ public class SQLFunctions {
         List<KVValue> parameters = Arrays.asList(arg1, arg2);
         for (KVValue p: parameters) {
             if (p.valueType == KVValue.ValueType.EVALUATED) {
-                script = Util.expr2Object((SQLExpr) p.value).toString() + ";" + script;
+                String str = Util.expr2Object((SQLExpr) p.value).toString().trim();
+                if (str != "" && !str.endsWith("}")) {
+                    str = str + "; ";
+                }
+                script = str + script;
             }
         }
 
@@ -931,7 +970,11 @@ public class SQLFunctions {
         List<KVValue> parameters = Arrays.asList(arg1, arg2, arg3);
         for (KVValue p: parameters) {
             if (p.valueType == KVValue.ValueType.EVALUATED) {
-                script = Util.expr2Object((SQLExpr) p.value).toString() + ";" + script;
+                String str = Util.expr2Object((SQLExpr) p.value).toString().trim();
+                if (str != "" && !str.endsWith("}")) {
+                    str = str + "; ";
+                }
+                script = str + script;
             }
         }
 
@@ -954,7 +997,11 @@ public class SQLFunctions {
         List<KVValue> parameters = Arrays.asList(arg1, arg2, arg3, arg4);
         for (KVValue p: parameters) {
             if (p.valueType == KVValue.ValueType.EVALUATED) {
-                script = Util.expr2Object((SQLExpr) p.value).toString() + ";" + script;
+                String str = Util.expr2Object((SQLExpr) p.value).toString().trim();
+                if (str != "" && !str.endsWith("}")) {
+                    str = str + "; ";
+                }
+                script = str + script;
             }
         }
 
