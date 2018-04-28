@@ -12,6 +12,7 @@ import com.alibaba.druid.sql.ast.statement.SQLTableSource;
 import com.alibaba.druid.sql.ast.statement.SQLUnionQuery;
 //import groovy.lang.Binding;
 //import groovy.lang.GroovyShell;
+import com.alibaba.druid.util.StringUtils;
 import org.nlpcn.es4sql.domain.KVValue;
 import org.nlpcn.es4sql.exception.SqlParseException;
 
@@ -236,6 +237,13 @@ public class Util {
 //        shell = null;
 //        binding = null;
 //        return ret;
+    }
+
+    public static String withComma(String str) {
+        if (!StringUtils.isEmpty(str) && !str.endsWith("}")) {
+            return str + ";";
+        }
+        return str;
     }
 
 }

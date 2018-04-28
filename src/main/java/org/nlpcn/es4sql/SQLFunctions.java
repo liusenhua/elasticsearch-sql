@@ -546,11 +546,7 @@ public class SQLFunctions {
             String generatedFieldName = functionStr.v1();
             String returnCommand = "return " + generatedFieldName +";" ;
             String newScript = extendFunctionScript + " " + functionStr.v2();
-            if (newScript.endsWith("}")) {
-                newScript = newScript + returnCommand;
-            } else {
-                newScript = newScript + "; " + returnCommand;
-            }
+            newScript = Util.withComma(newScript) + returnCommand;
             functionStr = new Tuple<>(generatedFieldName, newScript);
         }
         return functionStr;
@@ -659,16 +655,10 @@ public class SQLFunctions {
         for (KVValue p: parameters) {
             if (p.valueType == KVValue.ValueType.EVALUATED) {
                 String str = Util.expr2Object((SQLExpr) p.value).toString().trim();
-                if (str != "" && !str.endsWith("}")) {
-                    str = str + "; ";
-                }
-                evaluateScript = evaluateScript  + str;
+                evaluateScript = evaluateScript  + Util.withComma(str);
             }
             String str2 = convertType(p);
-            if (str2 !="" && !str2.endsWith("}")) {
-                str2 = str2 + "; ";
-            }
-            evaluateScript = evaluateScript + str2;
+            evaluateScript = evaluateScript + Util.withComma(str2);
         }
 
         if (evaluateScript != "") {
@@ -905,21 +895,25 @@ public class SQLFunctions {
 
     public static Tuple<String, String> invoke(String methodName, String ret, KVValue arg1 ) {
         String template = "def ${RET} = ${FUNC}(${ARG1})";
+        String template_check_null = "def ${RET} = null; if (${ARG1} != null) { ${RET} = ${FUNC}(${ARG1}); }";
 
         Map<String, String> map = new HashMap<>();
         map.put("FUNC", methodName);
         map.put("RET", ret);
         map.put("ARG1", getValue(arg1));
-        String script = Util.renderString(template, map);
+
+        String script;
+        if (checkNull(arg1)) {
+            script = Util.renderString(template_check_null, map);
+        } else {
+            script = Util.renderString(template, map);
+        }
 
         List<KVValue> parameters = Arrays.asList(arg1);
         for (KVValue p: parameters) {
             if (p.valueType == KVValue.ValueType.EVALUATED) {
                 String str = Util.expr2Object((SQLExpr) p.value).toString().trim();
-                if (str != "" && !str.endsWith("}")) {
-                    str = str + "; ";
-                }
-                script = str + script;
+                script = Util.withComma(str) + script;
             }
         }
 
@@ -945,10 +939,7 @@ public class SQLFunctions {
         for (KVValue p: parameters) {
             if (p.valueType == KVValue.ValueType.EVALUATED) {
                 String str = Util.expr2Object((SQLExpr) p.value).toString().trim();
-                if (str != "" && !str.endsWith("}")) {
-                    str = str + "; ";
-                }
-                script = str + script;
+                script = Util.withComma(str) + script;
             }
         }
 
@@ -971,10 +962,7 @@ public class SQLFunctions {
         for (KVValue p: parameters) {
             if (p.valueType == KVValue.ValueType.EVALUATED) {
                 String str = Util.expr2Object((SQLExpr) p.value).toString().trim();
-                if (str != "" && !str.endsWith("}")) {
-                    str = str + "; ";
-                }
-                script = str + script;
+                script = Util.withComma(str) + script;
             }
         }
 
@@ -998,10 +986,7 @@ public class SQLFunctions {
         for (KVValue p: parameters) {
             if (p.valueType == KVValue.ValueType.EVALUATED) {
                 String str = Util.expr2Object((SQLExpr) p.value).toString().trim();
-                if (str != "" && !str.endsWith("}")) {
-                    str = str + "; ";
-                }
-                script = str + script;
+                script =  Util.withComma(str) + script;
             }
         }
 

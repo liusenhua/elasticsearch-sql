@@ -1,5 +1,6 @@
 package org.nlpcn.es4sql.parse;
 
+import com.alibaba.druid.util.StringUtils;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
@@ -715,11 +716,11 @@ public class WhereParser {
         }
 
         String v1 = leftMethod.getParams().get(0).value.toString();
-        String v1Dec = leftMethod.getParams().size() == 2 ? leftMethod.getParams().get(1).value.toString() + ";" : "";
+        String v1Dec = leftMethod.getParams().size() == 2 ? Util.withComma(leftMethod.getParams().get(1).value.toString()) : "";
 
 
         String v2 = rightMethod.getParams().get(0).value.toString();
-        String v2Dec = rightMethod.getParams().size() == 2 ? rightMethod.getParams().get(1).value.toString() + ";" : "";
+        String v2Dec = rightMethod.getParams().size() == 2 ? Util.withComma(rightMethod.getParams().get(1).value.toString()): "";
 
         String operator = soExpr.getOperator().getName();
 
