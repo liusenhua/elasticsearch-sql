@@ -558,21 +558,43 @@ public class SQLFunctions {
 
     private static Tuple<String, String> concat_ws(String split, List<KVValue> columns) {
         String name = "concat_ws_" + random();
+        String template = "def ${RET} = ${STATEMENT}";
+        String template_check_null = "def ${RET} = null; if (${CONDITION}) { ${RET} = ${STATEMENT}; }";
+
         List<String> result = Lists.newArrayList();
+        List<String> conditions = Lists.newArrayList();
         for (KVValue column : columns) {
             String strColumn = getValue(column);
             result.add(strColumn);
+            if (checkNull(column)) {
+                String s = strColumn + " != null";
+                conditions.add(s);
+            }
         }
 
         String sep = " + ";
         if (split != "") {
             sep = " + " + split + " + ";
         }
-        String script = "def " + name + " = " + Joiner.on(sep).join(result);
+        String statement =  Joiner.on(sep).join(result);
+        String condition = Joiner.on(" && ").join(conditions);
+
+        Map<String, String> map = new HashMap<>();
+        map.put("RET", name);
+        map.put("STATEMENT", statement);
+
+        String script;
+        if (StringUtils.isEmpty(condition)) {
+            script = Util.renderString(template, map);
+        } else {
+            map.put("CONDITION", condition);
+            script = Util.renderString(template_check_null, map);
+        }
 
         for (KVValue p: columns) {
             if (p.valueType == KVValue.ValueType.EVALUATED) {
-                script = Util.expr2Object((SQLExpr) p.value).toString() + ";" + script;
+                String str = Util.expr2Object((SQLExpr) p.value).toString();
+                script =  Util.withComma(str) + script;
             }
         }
 
