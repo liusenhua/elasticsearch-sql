@@ -606,10 +606,10 @@ public class SQLFunctions {
         String name = "split_" + random();
         String script = "";
         if (valueName == null) {
-            script = "def " + name + " = doc['" + strColumn + "'].value.split('" + pattern + "')[" + index + "]";
+            script = "def " + name + " = doc['" + strColumn + "'].value?.split('" + pattern + "')[" + index + "]";
 
         } else {
-            script = "; def " + name + " = " + valueName + ".split('" + pattern + "')[" + index + "]";
+            script = "; def " + name + " = " + valueName + "?.split('" + pattern + "')[" + index + "]";
         }
         return new Tuple<>(name, script);
     }
@@ -831,9 +831,9 @@ public class SQLFunctions {
     public static Tuple<String, String> strSingleValueTemplate(String methodName, String strColumn, String valueName) {
         String name = methodName + "_" + random();
         if (valueName == null) {
-            return new Tuple(name, "def " + name + " = doc['" + strColumn + "'].value." + methodName + "()" );
+            return new Tuple(name, "def " + name + " = doc['" + strColumn + "'].value?." + methodName + "()" );
         } else {
-            return new Tuple(name, strColumn + "; def " + name + " = " + valueName + "." + methodName + "()");
+            return new Tuple(name, strColumn + "; def " + name + " = " + valueName + "?." + methodName + "()");
         }
 
     }
@@ -867,9 +867,9 @@ public class SQLFunctions {
     public static Tuple<String, String> split(String strColumn, String pattern, String valueName) {
         String name = "split_" + random();
         if (valueName == null) {
-            return new Tuple(name, "def " + name + " = doc['" + strColumn + "'].value.split('" + pattern + "')" );
+            return new Tuple(name, "def " + name + " = doc['" + strColumn + "'].value?.split('" + pattern + "')" );
         } else {
-            return new Tuple(name, strColumn + "; def " + name + " = " + valueName + ".split('" + pattern + "')");
+            return new Tuple(name, strColumn + "; def " + name + " = " + valueName + "?.split('" + pattern + "')");
         }
 
     }
