@@ -160,29 +160,23 @@ public class CaseWhenParser {
                 //  if (def date_part_265146825 = date_part('month', doc['createTime'].value);date_part_265146825 < 10)
                 //  =>
                 //  def date_part_265146825 = date_part('month', doc['createTime'].value); if (date_part_265146825 < 10)
-                String conditionStatement = "";
+
+                // Split the origin script with the last ";" or "}"
                 String script = ((ScriptFilter) condition.getValue()).getScript();
-                String[] splits = script.split(";");
-                int pos = 0;
-                for (int i = splits.length - 1; i >= 0; i--) {
-                    if (splits[i] != "") {
-                        conditionStatement = splits[i];
-                        pos = i;
+                String statement = "";
+                String conditionStatement = script;
+                for (int i = script.length() - 1; i >= 0; i--) {
+                    if (script.charAt(i) == ';' || script.charAt(i) == '}') {
+                        statement = script.substring(0, i + 1);
+                        conditionStatement = script.substring(i + 1, script.length());
                         break;
                     }
                 }
 
-                String statement = "";
-                for(int i = 0; i < pos; ++i) {
-                    if (splits[i] != "") {
-                        statement = statement + splits[i] + ";";
-                    }
-                }
-
-                if (statement != "") {
+                if (!StringUtils.isEmpty(statement)) {
                     statements.add(statement);
                 }
-                if (conditionStatement != "") {
+                if (!StringUtils.isEmpty(conditionStatement)) {
                     codes.add("(" + conditionStatement + ")");
                 }
 
