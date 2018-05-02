@@ -198,14 +198,8 @@ public class Condition extends Where {
             case "GEO_DISTANCE":
                 this.opear = OPEAR.GEO_DISTANCE;
                 break;
-            case "GEO_DISTANCE_RANGE":
-                this.opear = OPEAR.GEO_DISTANCE_RANGE;
-                break;
             case "GEO_POLYGON":
                 this.opear = OPEAR.GEO_POLYGON;
-                break;
-            case "GEO_CELL":
-                this.opear = OPEAR.GEO_CELL;
                 break;
             case "NESTED":
                 this.opear = OPEAR.NESTED_COMPLEX;
