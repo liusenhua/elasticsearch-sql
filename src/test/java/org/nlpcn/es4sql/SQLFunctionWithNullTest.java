@@ -6,10 +6,13 @@ import org.elasticsearch.plugin.nlpcn.QueryActionElasticExecutor;
 import org.elasticsearch.plugin.nlpcn.executors.CSVResult;
 import org.elasticsearch.plugin.nlpcn.executors.CSVResultsExtractor;
 import org.elasticsearch.plugin.nlpcn.executors.CsvExtractorException;
+import org.elasticsearch.plugin.nlpcn.executors.RestExecutor;
+import org.elasticsearch.plugin.nlpcn.executors.ActionRequestRestExecuterFactory;
 import org.elasticsearch.transport.client.PreBuiltTransportClient;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.nlpcn.es4sql.domain.Query;
 import org.nlpcn.es4sql.exception.SqlParseException;
 import org.nlpcn.es4sql.parse.SqlParser;
 import org.nlpcn.es4sql.query.QueryAction;
@@ -557,6 +560,14 @@ public class SQLFunctionWithNullTest {
         return getCsvResult(flat, query, false, false,false);
     }
 
+    private String getJsonResult(String query) throws SqlParseException, SQLFeatureNotSupportedException, Exception, CsvExtractorException {
+        SearchDao searchDao = getSearchDao();
+        QueryAction queryAction = searchDao.explain(query);
+        RestExecutor executor = ActionRequestRestExecuterFactory.createExecutor(null);
+        String json = executor.execute(searchDao.getClient(), null, queryAction);
+        return json;
+    }
+
     private CSVResult getCsvResult(boolean flat, String query, boolean includeScore, boolean includeType,boolean includeId) throws SqlParseException, SQLFeatureNotSupportedException, Exception, CsvExtractorException {
         SearchDao searchDao = getSearchDao();
         QueryAction queryAction = searchDao.explain(query);
@@ -573,6 +584,10 @@ public class SQLFunctionWithNullTest {
         Client client = new PreBuiltTransportClient(settings).
                 addTransportAddress(MainTestSuite.getTransportAddress());
         return new SearchDao(client);
+    }
+
+    private void print(String s) {
+        System.out.println(s);
     }
 
     private void print(CSVResult csvResult) {
