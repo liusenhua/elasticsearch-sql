@@ -15,10 +15,7 @@ import org.elasticsearch.search.aggregations.PipelineAggregationBuilder;
 import org.elasticsearch.search.aggregations.pipeline.PipelineAggregatorBuilders;
 import org.elasticsearch.search.aggregations.bucket.geogrid.GeoGridAggregationBuilder;
 
-import org.elasticsearch.search.aggregations.bucket.histogram.DateHistogramAggregationBuilder;
-import org.elasticsearch.search.aggregations.bucket.histogram.DateHistogramInterval;
-import org.elasticsearch.search.aggregations.bucket.histogram.Histogram;
-import org.elasticsearch.search.aggregations.bucket.histogram.HistogramAggregationBuilder;
+import org.elasticsearch.search.aggregations.bucket.histogram.*;
 import org.elasticsearch.search.aggregations.bucket.nested.ReverseNestedAggregationBuilder;
 import org.elasticsearch.search.aggregations.bucket.range.RangeAggregationBuilder;
 import org.elasticsearch.search.aggregations.bucket.range.date.DateRangeAggregationBuilder;
@@ -118,7 +115,7 @@ public class AggMaker {
                 return scriptedMetric(field);
             case "COUNT":
                 groupMap.put(field.getAlias(), new KVValue("COUNT", parent));
-                return makeCountAgg(field);
+                return addFieldToAgg(field, makeCountAgg(field));
             default:
                 throw new SqlParseException("the agg function not to define !");
         }
@@ -499,6 +496,15 @@ public class AggMaker {
                 case "min_doc_count":
                     dateHistogram.minDocCount(Long.parseLong(value));
                     break;
+                case "order":
+                    dateHistogram.order("desc".equalsIgnoreCase(value) ? Histogram.Order.KEY_DESC : Histogram.Order.KEY_ASC);
+                    break;
+                case "extended_bounds":
+                    String[] bounds = value.split(":");
+                    if (bounds.length == 2) {
+                        dateHistogram.extendedBounds(new ExtendedBounds(bounds[0], bounds[1]));
+                    }
+                    break;
 
                 case "alias":
                 case "nested":
@@ -603,7 +609,7 @@ public class AggMaker {
      * @param field The count function
      * @return AggregationBuilder use to count result
      */
-    private AbstractAggregationBuilder makeCountAgg(MethodField field) {
+    private ValuesSourceAggregationBuilder makeCountAgg(MethodField field) {
 
         // Cardinality is approximate DISTINCT.
         if ("DISTINCT".equals(field.getOption())) {
@@ -621,7 +627,9 @@ public class AggMaker {
 
         // In case of count(*) we use '_index' as field parameter to count all documents
         if ("*".equals(fieldName)) {
-            return AggregationBuilders.count(field.getAlias()).field("_index");
+            KVValue kvValue = new KVValue(null, "_index");
+            field.getParams().set(0, kvValue);
+            return AggregationBuilders.count(field.getAlias()).field(kvValue.toString());
         } else {
             return AggregationBuilders.count(field.getAlias()).field(fieldName);
         }
