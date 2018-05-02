@@ -289,6 +289,14 @@ public class SQLFunctions {
             "        c.set(Calendar.MINUTE, 0); " +
             "        c.set(Calendar.SECOND, 0); " +
             "        c.set(Calendar.MILLISECOND, 0); " +
+            "    } else if (date_type.equalsIgnoreCase('quarter')) { " +
+            "        int month = (c.get(Calendar.MONTH) / 3) * 3;" +
+            "        c.set(Calendar.MONTH, month); " +
+            "        c.set(Calendar.DAY_OF_MONTH, 1); " +
+            "        c.set(Calendar.HOUR_OF_DAY, 0); " +
+            "        c.set(Calendar.MINUTE, 0); " +
+            "        c.set(Calendar.SECOND, 0); " +
+            "        c.set(Calendar.MILLISECOND, 0); " +
             "    } else if (date_type.equalsIgnoreCase('month')) { " +
             "        c.set(Calendar.DAY_OF_MONTH, 1); " +
             "        c.set(Calendar.HOUR_OF_DAY, 0); " +
@@ -323,6 +331,12 @@ public class SQLFunctions {
             "    if (date_type.equalsIgnoreCase('year')) { " +
             "        int year = c.get(Calendar.YEAR); " +
             "        return year; " +
+            "    } else if (date_type.equalsIgnoreCase('quarter')) { " +
+            "        int month = c.get(Calendar.MONTH); " +
+            "        if (month == Calendar.JANUARY || month == Calendar.FEBRUARY || month == Calendar.MARCH) return 1; " +
+            "        else if (month == Calendar.APRIL || month == Calendar.MAY || month == Calendar.JUNE) return 2; " +
+            "        else if (month == Calendar.JULY || month == Calendar.AUGUST || month == Calendar.SEPTEMBER) return 3; " +
+            "        else if (month == Calendar.OCTOBER || month == Calendar.NOVEMBER || month == Calendar.DECEMBER) return 4; " +
             "    } else if (date_type.equalsIgnoreCase('month')) { " +
             "        int month = c.get(Calendar.MONTH); " +
             "        return month + 1; " +
@@ -452,13 +466,6 @@ public class SQLFunctions {
                 functionStr = datePart(paramers, functions);
                 break;
 
-            case "pow":
-                functionStr = pow(
-                        Util.expr2Object((SQLExpr) paramers.get(0).value).toString(),
-                        Util.expr2Object((SQLExpr) paramers.get(1).value).toString(),
-                        paramers.get(0).key);
-                break;
-
             case "round":
                 functionStr = round(paramers, functions);
                 break;
@@ -469,9 +476,6 @@ public class SQLFunctions {
                 break;
 
             case "log10":
-                functionStr = log10(Util.expr2Object((SQLExpr) paramers.get(0).value).toString(), paramers.get(0).key);
-                break;
-
             case "floor":
             case "ceil":
             case "cbrt":
@@ -479,10 +483,11 @@ public class SQLFunctions {
             case "exp":
             case "sqrt":
             case "abs":
-                functionStr = mathSingleValueTemplate("Math."+methodName,
-                        methodName,
-                        Util.expr2Object((SQLExpr) paramers.get(0).value).toString(),
-                        paramers.get(0).key);
+                functionStr = mathFuncTemplate(methodName, paramers.get(0));
+                break;
+
+            case "pow":
+                functionStr = mathFuncTemplate(methodName, paramers.get(0), paramers.get(1));
                 break;
 
             case "substr":
@@ -539,8 +544,9 @@ public class SQLFunctions {
             }
 
             String generatedFieldName = functionStr.v1();
-            String returnCommand = ";return " + generatedFieldName +";" ;
-            String newScript = extendFunctionScript + " " + functionStr.v2() + returnCommand;
+            String returnCommand = "return " + generatedFieldName +";" ;
+            String newScript = extendFunctionScript + " " + functionStr.v2();
+            newScript = Util.withComma(newScript) + returnCommand;
             functionStr = new Tuple<>(generatedFieldName, newScript);
         }
         return functionStr;
@@ -552,21 +558,43 @@ public class SQLFunctions {
 
     private static Tuple<String, String> concat_ws(String split, List<KVValue> columns) {
         String name = "concat_ws_" + random();
+        String template = "def ${RET} = ${STATEMENT}";
+        String template_check_null = "def ${RET} = null; if (${CONDITION}) { ${RET} = ${STATEMENT}; }";
+
         List<String> result = Lists.newArrayList();
+        List<String> conditions = Lists.newArrayList();
         for (KVValue column : columns) {
             String strColumn = getValue(column);
             result.add(strColumn);
+            if (checkNull(column)) {
+                String s = strColumn + " != null";
+                conditions.add(s);
+            }
         }
 
         String sep = " + ";
         if (split != "") {
             sep = " + " + split + " + ";
         }
-        String script = "def " + name + " = " + Joiner.on(sep).join(result);
+        String statement =  Joiner.on(sep).join(result);
+        String condition = Joiner.on(" && ").join(conditions);
+
+        Map<String, String> map = new HashMap<>();
+        map.put("RET", name);
+        map.put("STATEMENT", statement);
+
+        String script;
+        if (StringUtils.isEmpty(condition)) {
+            script = Util.renderString(template, map);
+        } else {
+            map.put("CONDITION", condition);
+            script = Util.renderString(template_check_null, map);
+        }
 
         for (KVValue p: columns) {
             if (p.valueType == KVValue.ValueType.EVALUATED) {
-                script = Util.expr2Object((SQLExpr) p.value).toString() + ";" + script;
+                String str = Util.expr2Object((SQLExpr) p.value).toString();
+                script =  Util.withComma(str) + script;
             }
         }
 
@@ -578,10 +606,10 @@ public class SQLFunctions {
         String name = "split_" + random();
         String script = "";
         if (valueName == null) {
-            script = "def " + name + " = doc['" + strColumn + "'].value.split('" + pattern + "')[" + index + "]";
+            script = "def " + name + " = doc['" + strColumn + "'].value?.split('" + pattern + "')[" + index + "]";
 
         } else {
-            script = "; def " + name + " = " + valueName + ".split('" + pattern + "')[" + index + "]";
+            script = "; def " + name + " = " + valueName + "?.split('" + pattern + "')[" + index + "]";
         }
         return new Tuple<>(name, script);
     }
@@ -621,7 +649,10 @@ public class SQLFunctions {
 
     private static Tuple<String, String> binaryOpertator(String methodName, String operator, KVValue a, KVValue b) {
         String name = methodName + "_" + random();
-        //String template = "def ${RET} = null; if (${ARG1} != null && ${ARG2} != null) { ${RET} = ${ARG1} ${OP} ${ARG2}; }";
+
+        String template_check_both = "def ${RET} = null; if (${ARG1} != null && ${ARG2} != null) { ${RET} = ${ARG1} ${OP} ${ARG2}; }";
+        String template_check_a = "def ${RET} = null; if (${ARG1} != null) { ${RET} = ${ARG1} ${OP} ${ARG2}; }";
+        String template_check_b = "def ${RET} = null; if (${ARG2} != null) { ${RET} = ${ARG1} ${OP} ${ARG2}; }";
         String template = "def ${RET} = ${ARG1} ${OP} ${ARG2}";
 
         Map<String, String> map = new HashMap<>();
@@ -629,28 +660,45 @@ public class SQLFunctions {
         map.put("OP", operator);
         map.put("ARG1", getValue(a));
         map.put("ARG2", getValue(b));
-        String script = Util.renderString(template, map);
+
+        String script;
+        if (checkNull(a) && checkNull(b)) {
+            script = Util.renderString(template_check_both, map);
+        } else if (checkNull(a)) {
+            script = Util.renderString(template_check_a, map);
+        } else if (checkNull(b)) {
+            script = Util.renderString(template_check_b, map);
+        } else {
+            script = Util.renderString(template, map);
+        }
 
         String evaluateScript = "";
         List<KVValue> parameters = Arrays.asList(a, b);
         for (KVValue p: parameters) {
             if (p.valueType == KVValue.ValueType.EVALUATED) {
-                String str = Util.expr2Object((SQLExpr) p.value).toString();
-                if (!StringUtils.isEmpty(str)) {
-                    evaluateScript = evaluateScript +  "; " + str;
-                }
+                String str = Util.expr2Object((SQLExpr) p.value).toString().trim();
+                evaluateScript = evaluateScript  + Util.withComma(str);
             }
             String str2 = convertType(p);
-            if (!StringUtils.isEmpty(str2)) {
-                evaluateScript = evaluateScript +  "; " + str2;
-            }
+            evaluateScript = evaluateScript + Util.withComma(str2);
         }
 
         if (evaluateScript != "") {
-            script = evaluateScript.substring(1) + "; " + script; // trim the ";'
+            script = evaluateScript + script;
         }
 
         return new Tuple<>(name, script);
+    }
+
+    private static  boolean checkNull(KVValue param) {
+        if (param.valueType == KVValue.ValueType.EVALUATED ||
+                param.valueType == KVValue.ValueType.REFERENCE ) {
+            return true;
+        } else if (isProperty((SQLExpr) param.value)) {
+            return true;
+        }
+
+        return false;
     }
 
     private static String convertType(KVValue param) {
@@ -766,28 +814,12 @@ public class SQLFunctions {
         return invoke(SQLFunctions.DATE_PART_FUNCTION, parameters.get(0), parameters.get(1));
     }
 
-    public static Tuple<String, String> log10(String strColumn, String valueName) {
-
-        return mathSingleValueTemplate("Math.log10", "log10", strColumn, valueName);
-
+    private static Tuple<String, String> mathFuncTemplate(String methodName, KVValue arg) {
+        return invoke("Math." + methodName, methodName + "_" + random(), arg);
     }
 
-    public static Tuple<String, String> sqrt(String strColumn, String valueName) {
-
-        return mathSingleValueTemplate("Math.sqrt", "sqrt",  strColumn, valueName);
-
-    }
-
-    public static Tuple<String, String> round(String strColumn, String valueName) {
-
-        return mathSingleValueTemplate("Math.round","round", strColumn, valueName);
-
-    }
-
-    public static Tuple<String, String> pow(String strColumn, String exponent, String valueName) {
-
-        return mathTwoValueTemplate("Math.pow","pow", strColumn, exponent, valueName);
-
+    private static Tuple<String, String> mathFuncTemplate(String methodName, KVValue arg1, KVValue arg2) {
+        return invoke("Math." + methodName, methodName + "_" + random(), arg1, arg2);
     }
 
     public static Tuple<String, String> trim(String strColumn, String valueName) {
@@ -796,40 +828,13 @@ public class SQLFunctions {
 
     }
 
-    private static Tuple<String, String> mathSingleValueTemplate(String methodName, String strColumn, String valueName) {
-        return mathSingleValueTemplate(methodName,methodName, strColumn,valueName);
-    }
-    private static Tuple<String, String> mathSingleValueTemplate(String methodName, String fieldName, String strColumn, String valueName) {
-        String name = fieldName + "_" + random();
-        if (valueName == null) {
-            return new Tuple<>(name, "def " + name + " = " + methodName + "(doc['" + strColumn + "'].value)");
-        } else {
-            return new Tuple<>(name, strColumn + ";def " + name + " = " + methodName + "(" + valueName + ")");
-        }
-    }
-
     public static Tuple<String, String> strSingleValueTemplate(String methodName, String strColumn, String valueName) {
         String name = methodName + "_" + random();
         if (valueName == null) {
-            return new Tuple(name, "def " + name + " = doc['" + strColumn + "'].value." + methodName + "()" );
+            return new Tuple(name, "def " + name + " = doc['" + strColumn + "'].value?." + methodName + "()" );
         } else {
-            return new Tuple(name, strColumn + "; def " + name + " = " + valueName + "." + methodName + "()");
+            return new Tuple(name, strColumn + "; def " + name + " = " + valueName + "?." + methodName + "()");
         }
-
-    }
-
-    private static Tuple<String, String> mathTwoValueTemplate(String methodName, String fieldName, String strColumn, String second, String valueName) {
-        String name = fieldName + "_" + random();
-        if (valueName == null) {
-            return new Tuple<>(name, "def " + name + " = " + methodName + "(doc['" + strColumn + "'].value," + second +")");
-        } else {
-            return new Tuple<>(name, strColumn + ";def " + name + " = " + methodName + "(" + valueName + "," + second + ")");
-        }
-    }
-
-    public static Tuple<String, String> floor(String strColumn, String valueName) {
-
-        return mathSingleValueTemplate("Math.floor", "floor",strColumn, valueName);
 
     }
 
@@ -862,9 +867,9 @@ public class SQLFunctions {
     public static Tuple<String, String> split(String strColumn, String pattern, String valueName) {
         String name = "split_" + random();
         if (valueName == null) {
-            return new Tuple(name, "def " + name + " = doc['" + strColumn + "'].value.split('" + pattern + "')" );
+            return new Tuple(name, "def " + name + " = doc['" + strColumn + "'].value?.split('" + pattern + "')" );
         } else {
-            return new Tuple(name, strColumn + "; def " + name + " = " + valueName + ".split('" + pattern + "')");
+            return new Tuple(name, strColumn + "; def " + name + " = " + valueName + "?.split('" + pattern + "')");
         }
 
     }
@@ -907,31 +912,47 @@ public class SQLFunctions {
 
     public static Tuple<String, String> invoke(String methodName, KVValue arg1 ) {
         String name = methodName + "_" + random();
+        return invoke(methodName, name, arg1);
+    }
+
+    public static Tuple<String, String> invoke(String methodName, String ret, KVValue arg1 ) {
         String template = "def ${RET} = ${FUNC}(${ARG1})";
+        String template_check_null = "def ${RET} = null; if (${ARG1} != null) { ${RET} = ${FUNC}(${ARG1}); }";
 
         Map<String, String> map = new HashMap<>();
         map.put("FUNC", methodName);
-        map.put("RET", name);
+        map.put("RET", ret);
         map.put("ARG1", getValue(arg1));
-        String script = Util.renderString(template, map);
+
+        String script;
+        if (checkNull(arg1)) {
+            script = Util.renderString(template_check_null, map);
+        } else {
+            script = Util.renderString(template, map);
+        }
 
         List<KVValue> parameters = Arrays.asList(arg1);
         for (KVValue p: parameters) {
             if (p.valueType == KVValue.ValueType.EVALUATED) {
-                script = Util.expr2Object((SQLExpr) p.value).toString() + ";" + script;
+                String str = Util.expr2Object((SQLExpr) p.value).toString().trim();
+                script = Util.withComma(str) + script;
             }
         }
 
-        return new Tuple<>(name, script);
+        return new Tuple<>(ret, script);
     }
 
-    public static Tuple<String, String> invoke(String methodName, KVValue arg1, KVValue arg2 ) {
+    public static Tuple<String, String> invoke(String methodName, KVValue arg1, KVValue arg2) {
         String name = methodName + "_" + random();
+        return invoke(methodName, name, arg1, arg2);
+    }
+
+    public static Tuple<String, String> invoke(String methodName, String ret, KVValue arg1, KVValue arg2 ) {
         String template = "def ${RET} = ${FUNC}(${ARG1}, ${ARG2})";
 
         Map<String, String> map = new HashMap<>();
         map.put("FUNC", methodName);
-        map.put("RET", name);
+        map.put("RET", ret);
         map.put("ARG1", getValue(arg1));
         map.put("ARG2", getValue(arg2));
         String script = Util.renderString(template, map);
@@ -939,11 +960,12 @@ public class SQLFunctions {
         List<KVValue> parameters = Arrays.asList(arg1, arg2);
         for (KVValue p: parameters) {
             if (p.valueType == KVValue.ValueType.EVALUATED) {
-                script = Util.expr2Object((SQLExpr) p.value).toString() + ";" + script;
+                String str = Util.expr2Object((SQLExpr) p.value).toString().trim();
+                script = Util.withComma(str) + script;
             }
         }
 
-        return new Tuple<>(name, script);
+        return new Tuple<>(ret, script);
     }
 
     public static Tuple<String, String> invoke(String methodName, KVValue arg1, KVValue arg2, KVValue arg3 ) {
@@ -961,7 +983,8 @@ public class SQLFunctions {
         List<KVValue> parameters = Arrays.asList(arg1, arg2, arg3);
         for (KVValue p: parameters) {
             if (p.valueType == KVValue.ValueType.EVALUATED) {
-                script = Util.expr2Object((SQLExpr) p.value).toString() + ";" + script;
+                String str = Util.expr2Object((SQLExpr) p.value).toString().trim();
+                script = Util.withComma(str) + script;
             }
         }
 
@@ -984,7 +1007,8 @@ public class SQLFunctions {
         List<KVValue> parameters = Arrays.asList(arg1, arg2, arg3, arg4);
         for (KVValue p: parameters) {
             if (p.valueType == KVValue.ValueType.EVALUATED) {
-                script = Util.expr2Object((SQLExpr) p.value).toString() + ";" + script;
+                String str = Util.expr2Object((SQLExpr) p.value).toString().trim();
+                script =  Util.withComma(str) + script;
             }
         }
 

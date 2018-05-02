@@ -6,10 +6,13 @@ import org.elasticsearch.plugin.nlpcn.QueryActionElasticExecutor;
 import org.elasticsearch.plugin.nlpcn.executors.CSVResult;
 import org.elasticsearch.plugin.nlpcn.executors.CSVResultsExtractor;
 import org.elasticsearch.plugin.nlpcn.executors.CsvExtractorException;
+import org.elasticsearch.plugin.nlpcn.executors.RestExecutor;
+import org.elasticsearch.plugin.nlpcn.executors.ActionRequestRestExecuterFactory;
 import org.elasticsearch.transport.client.PreBuiltTransportClient;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.nlpcn.es4sql.domain.Query;
 import org.nlpcn.es4sql.exception.SqlParseException;
 import org.nlpcn.es4sql.parse.SqlParser;
 import org.nlpcn.es4sql.query.QueryAction;
@@ -146,6 +149,15 @@ public class SQLFunctionWithNullTest {
     }
 
     @Test
+    public void aggWithCaseWhen2() throws Exception {
+        String query = "SELECT count(*), sum(age), CASE when gender='M' THEN '男' when gender='F' then '女' ELSE '其他' END as sex" +
+                " FROM " + TestsConstants.TEST_INDEX + "/account_with_null group by sex";
+        printQuery(query);
+        CSVResult csvResult = getCsvResult(false, query);
+        print(csvResult);
+    }
+
+    @Test
     public void aggWithOperationBefore() throws Exception {
         String query = "SELECT min(age * 3 + 1) as min" +
                 " FROM " + TestsConstants.TEST_INDEX + "/account_with_null";
@@ -184,6 +196,15 @@ public class SQLFunctionWithNullTest {
     @Test
     public void caseWhen() throws Exception {
         String query = "SELECT gender, CASE when (gender) = 'M' THEN '男' ELSE '女' END as sex " +
+                "FROM " + TestsConstants.TEST_INDEX + "/account_with_null";
+        printQuery(query);
+        CSVResult csvResult = getCsvResult(false, query);
+        print(csvResult);
+    }
+
+    @Test
+    public void caseWhen2() throws Exception {
+        String query = "SELECT gender, CASE when (12 < 0) && (3>0) THEN 0 when -1 < 0 then 6 ELSE 12 END as ret " +
                 "FROM " + TestsConstants.TEST_INDEX + "/account_with_null";
         printQuery(query);
         CSVResult csvResult = getCsvResult(false, query);
@@ -321,6 +342,7 @@ public class SQLFunctionWithNullTest {
                 "to_char(date_trunc('hour',  createTime)) trunc_hour, " +
                 "to_char(date_trunc('day',  createTime)) trunc_day, " +
                 "to_char(date_trunc('month',  createTime)) trunc_month, " +
+                "to_char(date_trunc('quarter',  createTime)) trunc_quarter, " +
                 "to_char(date_trunc('year',  createTime)) trunc_year " +
                 " FROM " + TestsConstants.TEST_INDEX + "/account_with_null";
         printQuery(query);
@@ -337,6 +359,7 @@ public class SQLFunctionWithNullTest {
                 "date_part('hour',  createTime) hour, " +
                 "date_part('day',  createTime) day, " +
                 "date_part('month',  createTime) month, " +
+                "date_part('quarter',  createTime) quarter, " +
                 "date_part('year',  createTime) year " +
                 " FROM " + TestsConstants.TEST_INDEX + "/account_with_null";
         printQuery(query);
@@ -537,6 +560,14 @@ public class SQLFunctionWithNullTest {
         return getCsvResult(flat, query, false, false,false);
     }
 
+    private String getJsonResult(String query) throws SqlParseException, SQLFeatureNotSupportedException, Exception, CsvExtractorException {
+        SearchDao searchDao = getSearchDao();
+        QueryAction queryAction = searchDao.explain(query);
+        RestExecutor executor = ActionRequestRestExecuterFactory.createExecutor(null);
+        String json = executor.execute(searchDao.getClient(), null, queryAction);
+        return json;
+    }
+
     private CSVResult getCsvResult(boolean flat, String query, boolean includeScore, boolean includeType,boolean includeId) throws SqlParseException, SQLFeatureNotSupportedException, Exception, CsvExtractorException {
         SearchDao searchDao = getSearchDao();
         QueryAction queryAction = searchDao.explain(query);
@@ -553,6 +584,10 @@ public class SQLFunctionWithNullTest {
         Client client = new PreBuiltTransportClient(settings).
                 addTransportAddress(MainTestSuite.getTransportAddress());
         return new SearchDao(client);
+    }
+
+    private void print(String s) {
+        System.out.println(s);
     }
 
     private void print(CSVResult csvResult) {

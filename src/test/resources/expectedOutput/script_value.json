@@ -1,19 +1,19 @@
 {
-    "from": 0,
-    "size": 200,
-    "_source": {
-        "includes": [
+    "from" : 0,
+    "size" : 200,
+    "_source" : {
+        "includes" : [
             "cust_code"
         ],
-        "excludes": []
+        "excludes" : [ ]
     },
-    "script_fields": {
-        "test": {
-            "script": {
-                "inline": "def func_1441770597(def doc) { try { if((doc['gender'].empty)){return 'aaa';} else {return doc['gender'].value;}} catch (Exception e) { return null;} } def eval_467728747 = func_1441770597(doc);return eval_467728747;",
-                "lang": "painless"
+    "script_fields" : {
+        "test" : {
+            "script" : {
+                "inline" : "def func_1820601108(def doc) { try {def condition_1495498039 = (doc['gender'].empty); if(condition_1495498039){return 'aaa';} else {return doc['gender'].value;}} catch (Exception e) { return null;} } def eval_1623481354 = func_1820601108(doc);return eval_1623481354;",
+                "lang" : "painless"
             },
-            "ignore_failure": false
+            "ignore_failure" : false
         }
     }
 }

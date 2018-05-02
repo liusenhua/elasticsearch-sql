@@ -448,7 +448,9 @@ public class AggregationTest {
     }
 
 	private Aggregations query(String query) throws SqlParseException, SQLFeatureNotSupportedException {
+	    System.out.println(query);
         SqlElasticSearchRequestBuilder select = getSearchRequestBuilder(query);
+        System.out.println(select.explain());
 		return ((SearchResponse)select.get()).getAggregations();
 	}
 
