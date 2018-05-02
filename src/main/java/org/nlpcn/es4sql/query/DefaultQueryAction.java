@@ -96,15 +96,21 @@ public class DefaultQueryAction extends QueryAction {
 	 *            list of fields to source filter.
 	 */
 	public void setFields(List<Field> fields) throws SqlParseException {
+		boolean haveScriptField = false;
 		if (select.getFields().size() > 0) {
 			ArrayList<String> includeFields = new ArrayList<String>();
 			ArrayList<String> excludeFields = new ArrayList<String>();
 
 			for (Field field : fields) {
 				if (field instanceof MethodField) {
+					if (Select.isAggField(field)) {
+						continue;
+					}
+
 					MethodField method = (MethodField) field;
 					if (method.getName().toLowerCase().equals("script")) {
 						handleScriptField(method);
+						haveScriptField = true;
 					} else if (method.getName().equalsIgnoreCase("include")) {
 						for (KVValue kvValue : method.getParams()) {
 							includeFields.add(kvValue.value.toString()) ;
@@ -119,6 +125,11 @@ public class DefaultQueryAction extends QueryAction {
 				}
 			}
 
+			// fix the issue: select floor(a) from myindex. It will return all fields,
+			// the expected result is return one column.
+			if (haveScriptField && includeFields.isEmpty() && excludeFields.isEmpty()) {
+				excludeFields.add("*");
+			}
 			request.setFetchSource(includeFields.toArray(new String[includeFields.size()]), excludeFields.toArray(new String[excludeFields.size()]));
 		}
 	}

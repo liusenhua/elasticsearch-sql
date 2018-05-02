@@ -35,6 +35,7 @@ import com.google.common.io.ByteStreams;
 		ExplainTest.class,
         WktToGeoJsonConverterTests.class,
         SqlParserTests.class,
+		SQLFunctionWithNullTest.class,
         ShowTest.class,
         CSVResultsExtractorTests.class,
         SourceFieldTest.class,
@@ -71,6 +72,8 @@ public class MainTestSuite {
 		loadBulk("src/test/resources/online.json");
         prepareAccountsIndex();
 		loadBulk("src/test/resources/accounts.json");
+        prepareAccountsWithNullIndex();
+		loadBulk("src/test/resources/accounts_with_null.json");
         preparePhrasesIndex();
         loadBulk("src/test/resources/phrases.json");
         prepareDogsIndex();
@@ -148,28 +151,117 @@ public class MainTestSuite {
     }
 
     private static void prepareAccountsIndex() {
-        String dataMapping = "{  \"account\": {" +
-                " \"properties\": {\n" +
-                "          \"gender\": {\n" +
-                "            \"type\": \"string\",\n" +
-                "            \"fielddata\": true\n" +
-                "          }," +
-                "          \"address\": {\n" +
-                "            \"type\": \"string\",\n" +
-                "            \"fielddata\": true\n" +
-                "          }," +
-                "          \"state\": {\n" +
-                "            \"type\": \"string\",\n" +
-                "            \"fielddata\": true\n" +
-                "          }" +
-                "       }"+
-                "   }" +
+        String dataMapping = "{\n" +
+                "    \"account\": {\n" +
+                "        \"dynamic_templates\": [\n" +
+                "            {\n" +
+                "                \"strings_as_keywords\": {\n" +
+                "                    \"match_mapping_type\": \"string\",\n" +
+                "                    \"mapping\": {\n" +
+                "                        \"type\": \"keyword\"\n" +
+                "                    }\n" +
+                "                }\n" +
+                "            }\n" +
+                "        ],\n" +
+                "        \"date_detection\": true,\n" +
+                "        \"numeric_detection\": false,\n" +
+                "        \"properties\": {\n" +
+                "            \"balance\": {\n" +
+                "                \"type\": \"float\"\n" +
+                "            },\n" +
+                "            \"createTime\": {\n" +
+                "                \"type\": \"date\",\n" +
+                "                \"format\": \"yyyy-MM-dd HH:mm:ss.SSS||yyyy-MM-dd\"\n" +
+                "            },\n" +
+                "            \"date_basic\": {\n" +
+                "                \"type\": \"date\",\n" +
+                "                \"format\": \"yyyyMMdd\"\n" +
+                "            },\n" +
+                "            \"date_custom\": {\n" +
+                "                \"type\": \"date\",\n" +
+                "                \"format\": \"yyyy/MM/dd\"\n" +
+                "            },\n" +
+                "            \"gender\": {\n" +
+                "                \"type\": \"string\",\n" +
+                "                \"fielddata\": true\n" +
+                "            },\n" +
+                "            \"address\": {\n" +
+                "                \"type\": \"string\",\n" +
+                "                \"fielddata\": true\n" +
+                "            },\n" +
+                "            \"state\": {\n" +
+                "                \"type\": \"string\",\n" +
+                "                \"fielddata\": true\n" +
+                "            },\n" +
+                "            \"firstname\": {\n" +
+                "                \"type\": \"string\",\n" +
+                "                \"fielddata\": true\n" +
+                "            }\n" +
+                "        }\n" +
+                "    }\n" +
                 "}";
         client.admin().indices().preparePutMapping(TEST_INDEX).setType("account").setSource(dataMapping, XContentFactory.xContentType(dataMapping)).execute().actionGet();
     }
 
-
-
+	private static void prepareAccountsWithNullIndex() {
+		String dataMapping = "{\n" +
+				"    \"account_with_null\": {\n" +
+				"        \"_all\": {\n" +
+				"            \"enabled\": false\n" +
+				"        },\n" +
+				"        \"dynamic_date_formats\": [\n" +
+				"            \"yyyy-MM-dd HH:mm:ss.SSS\",\n" +
+				"            \"yyyy/MM/dd\"\n" +
+				"        ],\n" +
+				"        \"dynamic_templates\": [\n" +
+				"            {\n" +
+				"                \"strings_as_keywords\": {\n" +
+				"                    \"match_mapping_type\": \"string\",\n" +
+				"                    \"mapping\": {\n" +
+				"                        \"type\": \"keyword\"\n" +
+				"                    }\n" +
+				"                }\n" +
+				"            }\n" +
+				"        ],\n" +
+				"        \"date_detection\": true,\n" +
+				"        \"numeric_detection\": false,\n" +
+				"        \"properties\": {\n" +
+				"            \"balance\": {\n" +
+				"                \"type\": \"float\"\n" +
+				"            },\n" +
+				"            \"createTime\": {\n" +
+				"                \"type\": \"date\",\n" +
+				"                \"format\": \"yyyy-MM-dd HH:mm:ss.SSS||yyyy-MM-dd\"\n" +
+				"            },\n" +
+				"            \"date_basic\": {\n" +
+				"                \"type\": \"date\",\n" +
+				"                \"format\": \"yyyyMMdd\"\n" +
+				"            },\n" +
+				"            \"date_custom\": {\n" +
+				"                \"type\": \"date\",\n" +
+				"                \"format\": \"yyyy/MM/dd\"\n" +
+				"            },\n" +
+                "            \"gender\": {\n" +
+                "                \"type\": \"string\",\n" +
+                "                \"fielddata\": true\n" +
+                "            },\n" +
+                "            \"address\": {\n" +
+                "                \"type\": \"string\",\n" +
+                "                \"fielddata\": true\n" +
+                "            },\n" +
+                "            \"state\": {\n" +
+                "                \"type\": \"string\",\n" +
+                "                \"fielddata\": true\n" +
+                "            },\n" +
+                "            \"firstname\": {\n" +
+                "                \"type\": \"string\",\n" +
+                "                \"fielddata\": true\n" +
+                "            }\n" +
+				"        }\n" +
+				"    }\n" +
+				"}";
+		client.admin().indices().preparePutMapping(TEST_INDEX).setType("account_with_null").setSource(dataMapping).execute().actionGet();
+	}
 
 
     private static void preparePhrasesIndex() {
@@ -368,6 +460,20 @@ public class MainTestSuite {
     }
 
 	public static SearchDao getSearchDao() {
+    	if (searchDao != null) {
+			return searchDao;
+		}
+
+		try {
+			Settings settings = Settings.builder().put("client.transport.ignore_cluster_name", true).build();
+
+			client = new PreBuiltTransportClient(settings).
+					addTransportAddress(getTransportAddress());
+			searchDao = new SearchDao(client);
+
+		} catch (Exception e) {
+
+		}
 		return searchDao;
 	}
 
@@ -380,11 +486,13 @@ public class MainTestSuite {
 		String port = System.getenv("ES_TEST_PORT");
 
 		if(host == null) {
+			//host = "10.14.192.198";
 			host = "localhost";
 			System.out.println("ES_TEST_HOST enviroment variable does not exist. choose default 'localhost'");
 		}
 
 		if(port == null) {
+			//port = "9350";
 			port = "9300";
 			System.out.println("ES_TEST_PORT enviroment variable does not exist. choose default '9300'");
 		}

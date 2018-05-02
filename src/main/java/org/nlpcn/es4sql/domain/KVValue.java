@@ -1,8 +1,12 @@
 package org.nlpcn.es4sql.domain;
 
 public class KVValue implements Cloneable {
+    public enum ValueType {
+        VALUE, EVALUATED, REFERENCE
+    }
     public String key;
     public Object value;
+    public ValueType valueType = ValueType.VALUE;
 
     public KVValue(Object value) {
         this.value = value;
@@ -13,6 +17,14 @@ public class KVValue implements Cloneable {
             this.key = key.replace("'", "");
         }
         this.value = value;
+    }
+
+    public KVValue(String key, Object value, ValueType valueType ) {
+        if (key != null) {
+            this.key = key.replace("'", "");
+        }
+        this.value = value;
+        this.valueType = valueType;
     }
 
     @Override

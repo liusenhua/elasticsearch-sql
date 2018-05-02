@@ -258,7 +258,7 @@ public class CSVResultsExtractorTests {
     @Test
     public void dateHistogramTest() throws SqlParseException, SQLFeatureNotSupportedException, Exception {
         String query = String.format("select count(*) from %s/online" +
-                " group by date_histogram('field'='insert_time','interval'='4d','alias'='days')",TEST_INDEX);
+                " group by date_histogram('field'='insert_time',format='yyyy-MM-dd HH:mm:ss', 'interval'='4d','alias'='days')",TEST_INDEX);
         CSVResult csvResult = getCsvResult(false, query);
         List<String> headers = csvResult.getHeaders();
         Assert.assertEquals(2, headers.size());

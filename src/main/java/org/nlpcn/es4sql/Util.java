@@ -1,17 +1,18 @@
 package org.nlpcn.es4sql;
 
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import com.alibaba.druid.sql.ast.expr.*;
 import com.alibaba.druid.sql.ast.statement.SQLJoinTableSource;
 import com.alibaba.druid.sql.ast.statement.SQLSelectQueryBlock;
 import com.alibaba.druid.sql.ast.statement.SQLTableSource;
 import com.alibaba.druid.sql.ast.statement.SQLUnionQuery;
-import org.nlpcn.es4sql.domain.Field;
+//import groovy.lang.Binding;
+//import groovy.lang.GroovyShell;
+import com.alibaba.druid.util.StringUtils;
 import org.nlpcn.es4sql.domain.KVValue;
 import org.nlpcn.es4sql.exception.SqlParseException;
 
@@ -207,6 +208,42 @@ public class Util {
             }
         }
         return false;
+    }
+
+    /**
+     * 根据键值对填充字符串，如("hello ${name}",{name:"andy"})
+     * 输出：
+     * @param content
+     * @param map
+     * @return
+     */
+    public static String renderString(String content, Map<String, String> map){
+        Set<Map.Entry<String, String>> sets = map.entrySet();
+        for(Map.Entry<String, String> entry : sets) {
+            String regex = "\\$\\{" + entry.getKey() + "\\}";
+            Pattern pattern = Pattern.compile(regex);
+            Matcher matcher = pattern.matcher(content);
+            content = matcher.replaceAll(entry.getValue());
+        }
+        return content;
+    }
+
+    public static Object evalScript(String script) throws Exception{
+        throw new Exception("can't evaluate groovy script in plugin due to security issue");
+//        Binding binding = new Binding();
+//        GroovyShell shell = new GroovyShell(binding);
+//        //invoke method
+//        Object ret = shell.evaluate(script);
+//        shell = null;
+//        binding = null;
+//        return ret;
+    }
+
+    public static String withComma(String str) {
+        if (!StringUtils.isEmpty(str) && !str.endsWith("}")) {
+            return str + ";";
+        }
+        return str;
     }
 
 }

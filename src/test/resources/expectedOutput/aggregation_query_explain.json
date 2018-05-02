@@ -3,7 +3,9 @@
     "size" : 0,
     "_source" : {
         "includes" : [ ],
-        "excludes" : [ ]
+        "excludes" : [
+            "*"
+        ]
     },
     "stored_fields" : [
         "a",
@@ -12,7 +14,7 @@
     "script_fields" : {
         "a2345" : {
             "script" : {
-                "inline" : "if((doc['gender'].value=='0')){'aaa'} else {'bbb'}",
+                "inline" : "def func_1222018147(def doc) { try {def condition_998564996 = (doc['gender'].value=='0'); if(condition_998564996){return 'aaa';} else {return 'bbb';}} catch (Exception e) { return null;} } def eval_542741914 = func_1222018147(doc);return eval_542741914;",
                 "lang" : "painless"
             },
             "ignore_failure" : false
@@ -39,10 +41,10 @@
                 "a2345" : {
                     "terms" : {
                         "script" : {
-                            "inline" : "if((doc['gender'].value=='0')){'aaa'} else {'bbb'}",
+                            "inline" : "def func_1222018147(def doc) { try {def condition_998564996 = (doc['gender'].value=='0'); if(condition_998564996){return 'aaa';} else {return 'bbb';}} catch (Exception e) { return null;} } def eval_542741914 = func_1222018147(doc);return eval_542741914;",
                             "lang" : "painless"
                         },
-                        "size" : 10,
+                        "size" : 200,
                         "min_doc_count" : 1,
                         "shard_min_doc_count" : 0,
                         "show_term_doc_count_error" : false,

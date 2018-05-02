@@ -47,6 +47,13 @@
             "boost" : 1.0
         }
     },
+    "_source" : {
+        "includes" : [
+            "*"
+        ],
+        "excludes" : [ ]
+    },
+    "stored_fields" : "*",
     "aggregations" : {
         "gender" : {
             "terms" : {

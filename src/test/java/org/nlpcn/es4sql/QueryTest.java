@@ -201,7 +201,7 @@ public class QueryTest {
 
 	@Test
 	public void likeTest() throws IOException, SqlParseException, SQLFeatureNotSupportedException {
-		SearchHits response = query(String.format("SELECT * FROM %s WHERE firstname LIKE 'amb%%' LIMIT 1000", TEST_INDEX));
+		SearchHits response = query(String.format("SELECT * FROM %s/account WHERE firstname LIKE 'amb%%' LIMIT 1000", TEST_INDEX));
 		SearchHit[] hits = response.getHits();
 
 		// assert the results is correct according to accounts.json data.

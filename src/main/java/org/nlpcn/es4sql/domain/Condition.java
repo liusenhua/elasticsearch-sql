@@ -86,6 +86,8 @@ public class Condition extends Where {
     private boolean isChildren;
     private String childType;
 
+    private String format; // for date literal
+
     public Condition(CONN conn, String field, SQLExpr nameExpr, String condition, Object obj, SQLExpr valueExpr) throws SqlParseException {
         this(conn, field, nameExpr, condition, obj, valueExpr, null);
     }
@@ -94,7 +96,15 @@ public class Condition extends Where {
         this(conn, field, nameExpr, condition, obj, valueExpr, null);
     }
 
-    public Condition(CONN conn, String name, SQLExpr nameExpr, String oper, Object value, SQLExpr valueExpr, Object relationshipType) throws
+    public Condition(CONN conn, String name, SQLExpr nameExpr, String oper, Object value, SQLExpr valueExpr, Object relationshipType) throws SqlParseException {
+        this(conn, name, nameExpr, oper, value, valueExpr, relationshipType, null);
+    }
+
+    public Condition(CONN conn, String name, SQLExpr nameExpr, OPEAR condition, Object value, SQLExpr valueExpr, Object relationshipType) throws SqlParseException {
+        this(conn, name, nameExpr, condition, value, valueExpr, relationshipType, null);
+    }
+
+    public Condition(CONN conn, String name, SQLExpr nameExpr, String oper, Object value, SQLExpr valueExpr, Object relationshipType, String format) throws
             SqlParseException {
         super(conn);
 
@@ -103,6 +113,7 @@ public class Condition extends Where {
         this.value = value;
         this.nameExpr = nameExpr;
         this.valueExpr = valueExpr;
+        this.format = format;
 
         this.relationshipType = relationshipType;
 
@@ -215,7 +226,8 @@ public class Condition extends Where {
                      OPEAR oper,
                      Object value,
                      SQLExpr valueExpr,
-                     Object relationshipType
+                     Object relationshipType,
+                     String format
     ) throws SqlParseException {
         super(conn);
 
@@ -226,6 +238,7 @@ public class Condition extends Where {
         this.value = value;
         this.opear = oper;
         this.relationshipType = relationshipType;
+        this.format = format;
 
         if (this.relationshipType != null) {
             if (this.relationshipType instanceof NestedType) {
@@ -340,6 +353,14 @@ public class Condition extends Where {
         this.childType = childType;
     }
 
+    public String getFormat() {
+        return format;
+    }
+
+    public void setFormat(String format) {
+        this.format = format;
+    }
+
     @Override
     public String toString() {
         String result = "";
@@ -369,7 +390,7 @@ public class Condition extends Where {
     @Override
     public Object clone() throws CloneNotSupportedException {
         try {
-            Condition clonedCondition = new Condition(this.getConn(), this.getName(),this.getNameExpr(), this.getOpear(), this.getValue(),this.getValueExpr(), this.getRelationshipType());
+            Condition clonedCondition = new Condition(this.getConn(), this.getName(),this.getNameExpr(), this.getOpear(), this.getValue(),this.getValueExpr(), this.getRelationshipType(), this.getFormat());
             return clonedCondition;
         } catch (SqlParseException e) {
 
