@@ -14,11 +14,9 @@ import org.joda.time.format.DateTimeFormatter;
 
 import org.junit.Assert;
 import org.junit.Test;
-import org.nlpcn.es4sql.domain.Select;
 import org.nlpcn.es4sql.exception.SqlParseException;
 import org.nlpcn.es4sql.query.SqlElasticSearchRequestBuilder;
 
-import javax.naming.directory.SearchControls;
 import java.io.IOException;
 import java.sql.SQLFeatureNotSupportedException;
 import java.text.ParseException;
@@ -220,6 +218,17 @@ public class QueryTest {
 			Assert.assertFalse(hit.getSource().get("firstname").toString().toLowerCase().startsWith("amb"));
 		}
 	}
+
+	@Test
+    public void regexpQueryTest() throws SqlParseException, SQLFeatureNotSupportedException {
+        String query = String.format("select * from %s/dog where dog_name = REGEXP_QUERY('sn.*', 'INTERSECTION|COMPLEMENT|EMPTY', 10000)", TEST_INDEX);
+        SearchHit[] hits = query(query).getHits();
+        Assert.assertEquals(1, hits.length);
+        Map<String, Object> hitAsMap = hits[0].getSourceAsMap();
+        Assert.assertEquals("snoopy", hitAsMap.get("dog_name"));
+        Assert.assertEquals("Hattie", hitAsMap.get("holdersName"));
+        Assert.assertEquals(4, hitAsMap.get("age"));
+    }
 
 	@Test
 	public void doubleNotTest() throws IOException, SqlParseException, SQLFeatureNotSupportedException {
@@ -907,6 +916,13 @@ public class QueryTest {
             Assert.assertTrue(highlightPhrase.contains("<b>fox</b>"));
         }
 
+    }
+
+    @Test
+    public void fieldCollapsingTest() throws IOException, SqlParseException, SQLFeatureNotSupportedException {
+        String query = String.format("select /*! COLLAPSE({\"field\":\"age\",\"inner_hits\":{\"name\":\"account\",\"size\":1,\"sort\":[{\"age\":\"asc\"}]},\"max_concurrent_group_searches\": 4}) */ * from %s/account", TEST_INDEX);
+        SearchHits hits = query(query);
+        Assert.assertEquals(21, hits.getHits().length);
     }
 
     private SearchHits query(String query) throws SqlParseException, SQLFeatureNotSupportedException, SQLFeatureNotSupportedException {
