@@ -88,6 +88,16 @@ public class FieldMaker {
                 mExpr.addParameter(new SQLCharExpr(scriptFromCaseWhen));
                 return makeMethodField(mExpr.getMethodName(), mExpr.getParameters(), null, alias, tableAlias, true, functionsInCaseWhen);
             }
+        }else if (expr instanceof SQLCastExpr) {
+            SQLCastExpr castExpr = (SQLCastExpr) expr;
+            if (alias == null) {
+                alias = "cast_" + castExpr.getExpr().toString();
+            }
+            String scriptCode = new CastParser(castExpr, alias, tableAlias).parse(true);
+            List<KVValue> methodParameters = new ArrayList<>();
+            methodParameters.add(new KVValue(alias));
+            methodParameters.add(new KVValue(scriptCode));
+            return new MethodField("script", methodParameters, null, alias);
         } else {
             throw new SqlParseException("unknown field name : " + expr);
         }
@@ -331,6 +341,9 @@ public class FieldMaker {
                         new SQLCharExpr(path),
                         KVValue.ValueType.REFERENCE
                 ));
+            } else if(object instanceof SQLCastExpr) {
+                String scriptCode = new CastParser((SQLCastExpr) object, alias, tableAlias).parse(false);
+                paramers.add(new KVValue("script",new SQLCharExpr(scriptCode)));
             } else {
                 paramers.add(new KVValue(Util.removeTableAilasFromField(object, tableAlias)));
             }
