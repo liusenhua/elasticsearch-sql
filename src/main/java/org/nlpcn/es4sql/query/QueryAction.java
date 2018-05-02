@@ -6,7 +6,6 @@ import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.json.JsonXContentParser;
-import org.elasticsearch.index.query.QueryParseContext;
 import org.elasticsearch.search.collapse.CollapseBuilder;
 import org.elasticsearch.search.fetch.subphase.highlight.HighlightBuilder;
 import org.nlpcn.es4sql.domain.Query;
@@ -38,7 +37,7 @@ public abstract class QueryAction {
         for (Hint hint : select.getHints()) {
             if (hint.getType() == HintType.COLLAPSE && hint.getParams() != null && 0 < hint.getParams().length) {
                 try (JsonXContentParser parser = new JsonXContentParser(NamedXContentRegistry.EMPTY, jsonFactory.createParser(hint.getParams()[0].toString()))) {
-                    request.setCollapse(CollapseBuilder.fromXContent(new QueryParseContext(parser)));
+                    request.setCollapse(CollapseBuilder.fromXContent(parser));
                 } catch (IOException e) {
                     throw new SqlParseException("could not parse collapse hint: " + e.getMessage());
                 }
