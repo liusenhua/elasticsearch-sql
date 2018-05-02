@@ -1,8 +1,7 @@
 package org.nlpcn.es4sql.query;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.stream.Collectors;
 
 import com.google.common.collect.Lists;
 import org.elasticsearch.action.search.SearchRequestBuilder;
@@ -13,6 +12,7 @@ import org.elasticsearch.join.aggregations.JoinAggregationBuilders;
 import org.elasticsearch.search.aggregations.AbstractAggregationBuilder;
 import org.elasticsearch.search.aggregations.AggregationBuilder;
 import org.elasticsearch.search.aggregations.AggregationBuilders;
+import org.elasticsearch.search.aggregations.PipelineAggregationBuilder;
 import org.elasticsearch.search.aggregations.bucket.nested.NestedAggregationBuilder;
 import org.elasticsearch.search.aggregations.bucket.nested.ReverseNestedAggregationBuilder;
 import org.elasticsearch.search.aggregations.bucket.terms.Terms;
@@ -57,25 +57,11 @@ public class AggregationQueryAction extends QueryAction {
             if (!groupBy.isEmpty()) {
                 Field field = groupBy.get(0);
 
-
                 //make groupby can reference to field alias
                 lastAgg = getGroupAgg(field, select);
 
-                if (lastAgg != null && lastAgg instanceof TermsAggregationBuilder && !(field instanceof MethodField)) {
-                    //if limit size is too small, increasing shard  size is required
-                    if (select.getRowCount() < 200) {
-                        ((TermsAggregationBuilder) lastAgg).shardSize(2000);
-                        for (Hint hint : select.getHints()) {
-                            if (hint.getType() == HintType.SHARD_SIZE) {
-                                if (hint.getParams() != null && hint.getParams().length != 0 && hint.getParams()[0] != null) {
-                                    ((TermsAggregationBuilder) lastAgg).shardSize((Integer) hint.getParams()[0]);
-                                }
-                            }
-                        }
-                    }
-                    if(select.getRowCount()>0) {
-                        ((TermsAggregationBuilder) lastAgg).size(select.getRowCount());
-                    }
+                if (lastAgg != null && lastAgg instanceof TermsAggregationBuilder) {
+                    fixTermsAgg((TermsAggregationBuilder) lastAgg, select, field);
                 }
 
                 if (field.isNested()) {
@@ -104,7 +90,11 @@ public class AggregationQueryAction extends QueryAction {
 
                 for (int i = 1; i < groupBy.size(); i++) {
                     field = groupBy.get(i);
+
                     AggregationBuilder subAgg = getGroupAgg(field, select);
+                    if (subAgg != null && subAgg instanceof TermsAggregationBuilder) {
+                        fixTermsAgg((TermsAggregationBuilder) subAgg, select, field);
+                    }
                       //ES5.0 termsaggregation with size = 0 not supported anymore
 //                    if (subAgg instanceof TermsAggregationBuilder && !(field instanceof MethodField)) {
 
@@ -183,6 +173,29 @@ public class AggregationQueryAction extends QueryAction {
         updateRequestWithHighlight(select, request);
         SqlElasticSearchRequestBuilder sqlElasticRequestBuilder = new SqlElasticSearchRequestBuilder(request);
         return sqlElasticRequestBuilder;
+    }
+
+    private void fixTermsAgg(TermsAggregationBuilder termsAgg, Select select, Field field) {
+        boolean isTermsMethod = (field instanceof MethodField)
+                && field.getName().toLowerCase().equalsIgnoreCase("terms");
+
+        if (!isTermsMethod) {
+            //if limit size is too small, increasing shard size is required
+            if (select.getRowCount() < 200) {
+                termsAgg.shardSize(2000);
+                for (Hint hint : select.getHints()) {
+                    if (hint.getType() == HintType.SHARD_SIZE) {
+                        if (hint.getParams() != null && hint.getParams().length != 0 && hint.getParams()[0] != null) {
+                            termsAgg.shardSize((Integer) hint.getParams()[0]);
+                        }
+                    }
+                }
+            }
+
+            if(select.getRowCount() > 0) {
+                termsAgg.size(select.getRowCount());
+            }
+        }
     }
     
     private AggregationBuilder getGroupAgg(Field field, Select select2) throws SqlParseException {
@@ -317,8 +330,7 @@ public class AggregationQueryAction extends QueryAction {
     private void explanFields(SearchRequestBuilder request, List<Field> fields, AggregationBuilder groupByAgg) throws SqlParseException {
         for (Field field : fields) {
             if (field instanceof MethodField) {
-
-                if (field.getName().equals("script")) {
+                if (!Select.isAggField(field) && field.getName().equals("script")) {
                     request.addStoredField(field.getAlias());
                     DefaultQueryAction defaultQueryAction = new DefaultQueryAction(client, select);
                     defaultQueryAction.intialize(request);
@@ -327,11 +339,26 @@ public class AggregationQueryAction extends QueryAction {
                     continue;
                 }
 
-                AggregationBuilder makeAgg = aggMaker.makeFieldAgg((MethodField) field, groupByAgg);
-                if (groupByAgg != null) {
-                    groupByAgg.subAggregation(makeAgg);
-                } else {
-                    request.addAggregation(makeAgg);
+                // The pipeline aggregation field may reference other aggregation
+                Set<Field> aggFields = aggMaker.getReferenceAggs((MethodField)field);
+                aggFields.add(field);
+                for (Field f : aggFields) {
+                    if (f.getName().toUpperCase().equals("SCRIPT")) {
+                        PipelineAggregationBuilder pipelineAgg = aggMaker.makePipelineAgg((MethodField) f, groupByAgg);
+                        if (groupByAgg != null) {
+                            groupByAgg.subAggregation(pipelineAgg);
+                        } else {
+                            //request.addAggregation(pipelineAgg);
+                        }
+                        continue;
+                    }
+
+                    AggregationBuilder makeAgg = aggMaker.makeFieldAgg((MethodField) f, groupByAgg);
+                    if (groupByAgg != null) {
+                        groupByAgg.subAggregation(makeAgg);
+                    } else {
+                        request.addAggregation(makeAgg);
+                    }
                 }
             } else if (field instanceof Field) {
                 request.addStoredField(field.getName());

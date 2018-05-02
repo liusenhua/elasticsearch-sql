@@ -22,7 +22,6 @@ public class ExplainTest {
     public void searchSanity() throws IOException, SqlParseException, NoSuchMethodException, IllegalAccessException, SQLFeatureNotSupportedException, InvocationTargetException {
         String expectedOutput = Files.toString(new File("src/test/resources/expectedOutput/search_explain.json"), StandardCharsets.UTF_8).replaceAll("\r","");
         String result = explain(String.format("SELECT * FROM %s WHERE firstname LIKE 'A%%' AND age > 20 GROUP BY gender order by _score", TEST_INDEX));
-
         assertThat(result.replaceAll("\\s+",""), equalTo(expectedOutput.replaceAll("\\s+","")));
     }
     
@@ -30,31 +29,33 @@ public class ExplainTest {
     public void aggregationQuery() throws IOException, SqlParseException, NoSuchMethodException, IllegalAccessException, SQLFeatureNotSupportedException, InvocationTargetException {
         String expectedOutput = Files.toString(new File("src/test/resources/expectedOutput/aggregation_query_explain.json"), StandardCharsets.UTF_8).replaceAll("\r","");
         String result = explain(String.format("SELECT a, CASE WHEN gender='0' then 'aaa' else 'bbb'end a2345,count(c) FROM %s GROUP BY terms('field'='a'),a2345", TEST_INDEX));
-
-        assertThat(result.replaceAll("\\s+",""), equalTo(expectedOutput.replaceAll("\\s+","")));
+        assertThat(
+                result.replaceAll("\\s+","").replaceAll("func_\\d+", "func_").replaceAll("eval_\\d+", "eval_").replaceAll("condition_\\d+", "condition_"),
+                equalTo(expectedOutput.replaceAll("\\s+","").replaceAll("func_\\d+", "func_").replaceAll("eval_\\d+", "eval_").replaceAll("condition_\\d+", "condition_")));
     }
     
     @Test
     public void explainScriptValue() throws IOException, SqlParseException, NoSuchMethodException, IllegalAccessException, SQLFeatureNotSupportedException, InvocationTargetException {
         String expectedOutput = Files.toString(new File("src/test/resources/expectedOutput/script_value.json"), StandardCharsets.UTF_8).replaceAll("\r","");
         String result = explain(String.format("SELECT  case when gender is null then 'aaa'  else gender  end  test , cust_code FROM %s", TEST_INDEX));
-
-        assertThat(result.replaceAll("\\s+",""), equalTo(expectedOutput.replaceAll("\\s+","")));
+        assertThat(
+                result.replaceAll("\\s+","").replaceAll("func_\\d+", "func_").replaceAll("eval_\\d+", "eval_").replaceAll("condition_\\d+", "condition_"),
+                equalTo(expectedOutput.replaceAll("\\s+","").replaceAll("func_\\d+", "func_").replaceAll("eval_\\d+", "eval_").replaceAll("condition_\\d+", "condition_")));
     }
     
     @Test
     public void betweenScriptValue() throws IOException, SqlParseException, NoSuchMethodException, IllegalAccessException, SQLFeatureNotSupportedException, InvocationTargetException {
         String expectedOutput = Files.toString(new File("src/test/resources/expectedOutput/between_query.json"), StandardCharsets.UTF_8).replaceAll("\r","");
         String result = explain(String.format("SELECT  case when value between 100 and 200 then 'aaa'  else value  end  test , cust_code FROM %s", TEST_INDEX));
-
-        assertThat(result.replaceAll("\\s+",""), equalTo(expectedOutput.replaceAll("\\s+","")));
+        assertThat(
+                result.replaceAll("\\s+","").replaceAll("func_\\d+", "func_").replaceAll("eval_\\d+", "eval_").replaceAll("condition_\\d+", "condition_"),
+                equalTo(expectedOutput.replaceAll("\\s+","").replaceAll("func_\\d+", "func_").replaceAll("eval_\\d+", "eval_").replaceAll("condition_\\d+", "condition_")));
     }
 
     @Test
     public void searchSanityFilter() throws IOException, SqlParseException, NoSuchMethodException, IllegalAccessException, SQLFeatureNotSupportedException, InvocationTargetException {
         String expectedOutput = Files.toString(new File("src/test/resources/expectedOutput/search_explain_filter.json"), StandardCharsets.UTF_8).replaceAll("\r","");
         String result = explain(String.format("SELECT * FROM %s WHERE firstname LIKE 'A%%' AND age > 20 GROUP BY gender", TEST_INDEX));
-
         assertThat(result.replaceAll("\\s+",""), equalTo(expectedOutput.replaceAll("\\s+","")));
     }
 

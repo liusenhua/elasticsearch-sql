@@ -88,7 +88,6 @@ public class SqlParser {
 
     private void findGroupBy(MySqlSelectQueryBlock query, Select select) throws SqlParseException {
         SQLSelectGroupByClause groupBy = query.getGroupBy();
-        SQLTableSource sqlTableSource = query.getFrom();
         if (groupBy == null) {
             return;
         }
@@ -104,34 +103,55 @@ public class SqlParser {
 
             if ((sqlExpr instanceof SQLParensIdentifierExpr || !(sqlExpr instanceof SQLIdentifierExpr || sqlExpr instanceof SQLMethodInvokeExpr)) && !standardGroupBys.isEmpty()) {
                 // flush the standard group bys
-                select.addGroupBy(convertExprsToFields(standardGroupBys, sqlTableSource));
+                select.addGroupBy(convertExprsToFields(query, standardGroupBys));
                 standardGroupBys = new ArrayList<>();
             }
 
             if (sqlExpr instanceof SQLParensIdentifierExpr) {
                 // single item with parens (should get its own aggregation)
-                select.addGroupBy(FieldMaker.makeField(sqlExpr, null, sqlTableSource.getAlias()));
+                select.addGroupBy(convertExprsToFields(query, Arrays.asList(sqlExpr)));
             } else if (sqlExpr instanceof SQLListExpr) {
                 // multiple items in their own list
                 SQLListExpr listExpr = (SQLListExpr) sqlExpr;
-                select.addGroupBy(convertExprsToFields(listExpr.getItems(), sqlTableSource));
+                select.addGroupBy(convertExprsToFields(query, listExpr.getItems()));
             } else {
                 // everything else gets added to the running list of standard group bys
                 standardGroupBys.add(sqlExpr);
             }
         }
         if (!standardGroupBys.isEmpty()) {
-            select.addGroupBy(convertExprsToFields(standardGroupBys, sqlTableSource));
+            select.addGroupBy(convertExprsToFields(query, standardGroupBys));
         }
     }
 
-    private List<Field> convertExprsToFields(List<? extends SQLExpr> exprs, SQLTableSource sqlTableSource) throws SqlParseException {
+    private List<Field> convertExprsToFields(MySqlSelectQueryBlock query, List<? extends SQLExpr> exprs) throws SqlParseException {
+        SQLTableSource sqlTableSource = query.getFrom();
         List<Field> fields = new ArrayList<>(exprs.size());
         for (SQLExpr expr : exprs) {
-            //here we suppose groupby field will not have alias,so set null in second parameter
-            fields.add(FieldMaker.makeField(expr, null, sqlTableSource.getAlias()));
+            // Find the alis from select field if they are same.
+            // If we pass alias when making field, it will become method field
+            // and the aggregation becomes script aggregation which can't leverage the caching.
+            // So here making field without alias firstly and then override the alias
+            Field field = FieldMaker.makeField(expr, null, sqlTableSource.getAlias());
+            String alias = sameAliasWithSelectItem(query, expr);
+            if (alias != null) {
+                field.setAlias(alias);
+            }
+            fields.add(field);
         }
         return fields;
+    }
+
+    private String sameAliasWithSelectItem(MySqlSelectQueryBlock query, SQLExpr expr) throws SqlParseException {
+        List<SQLSelectItem> selectList = query.getSelectList();
+        for (SQLSelectItem sqlSelectItem : selectList) {
+            String alis = sqlSelectItem.getAlias();
+            SQLExpr sqlExpr = sqlSelectItem.getExpr();
+            if (sqlExpr.equals(expr)) {
+                return alis;
+            }
+        }
+        return null;
     }
 
     private String sameAliasWhere(Where where, String... aliases) throws SqlParseException {
@@ -171,14 +191,34 @@ public class SqlParser {
         }
         List<SQLSelectOrderByItem> items = orderBy.getItems();
 
-        addOrderByToSelect(select, items, null);
+        addOrderByToSelect(query, select, items, null);
 
     }
 
-    private void addOrderByToSelect(Select select, List<SQLSelectOrderByItem> items, String alias) throws SqlParseException {
+    private void addOrderByToSelect(MySqlSelectQueryBlock query, Select select, List<SQLSelectOrderByItem> items, String alias) throws SqlParseException {
+        List<SQLSelectItem> selectList = query.getSelectList();
         for (SQLSelectOrderByItem sqlSelectOrderByItem : items) {
             SQLExpr expr = sqlSelectOrderByItem.getExpr();
-            String orderByName = FieldMaker.makeField(expr, null, null).toString();
+
+            // Check if the order by field is in select items list
+            boolean is_select_item = false;
+            for (SQLSelectItem sqlSelectItem : selectList) {
+                SQLExpr sqlExpr = sqlSelectItem.getExpr();
+                if (sqlExpr.equals(expr)) {
+                    is_select_item = true;
+                    break;
+                }
+            }
+
+            String orderByName;
+
+            Field field = FieldMaker.makeField(expr, null, null);
+            if (field instanceof MethodField && !is_select_item) {
+                select.addField(field);
+                orderByName = field.getAlias();
+            } else {
+                orderByName = field.toString();
+            }
 
             if (sqlSelectOrderByItem.getType() == null) {
                 sqlSelectOrderByItem.setType(SQLOrderingSpecification.ASC);
@@ -343,7 +383,7 @@ public class SqlParser {
         select.getFrom().add(from);
         findSelect(query, select, from.getAlias());
         select.setWhere(where);
-        addOrderByToSelect(select, orderBys, from.getAlias());
+        addOrderByToSelect(query, select, orderBys, from.getAlias());
     }
 
     private List<Condition> getJoinConditionsFlatten(SQLJoinTableSource from) throws SqlParseException {

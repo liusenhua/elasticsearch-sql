@@ -3,6 +3,7 @@ package org.nlpcn.es4sql.query.maker;
 import java.math.BigDecimal;
 import java.time.ZoneOffset;
 import java.util.*;
+import java.util.stream.Collectors;
 
 import org.elasticsearch.join.aggregations.JoinAggregationBuilders;
 import org.elasticsearch.script.Script;
@@ -10,6 +11,8 @@ import org.elasticsearch.script.ScriptType;
 import org.elasticsearch.search.aggregations.AbstractAggregationBuilder;
 import org.elasticsearch.search.aggregations.AggregationBuilder;
 import org.elasticsearch.search.aggregations.AggregationBuilders;
+import org.elasticsearch.search.aggregations.PipelineAggregationBuilder;
+import org.elasticsearch.search.aggregations.pipeline.PipelineAggregatorBuilders;
 import org.elasticsearch.search.aggregations.bucket.geogrid.GeoGridAggregationBuilder;
 
 import org.elasticsearch.search.aggregations.bucket.histogram.DateHistogramAggregationBuilder;
@@ -29,10 +32,7 @@ import org.elasticsearch.search.aggregations.support.ValuesSourceAggregationBuil
 import org.elasticsearch.search.sort.SortOrder;
 import org.joda.time.DateTimeZone;
 import org.nlpcn.es4sql.Util;
-import org.nlpcn.es4sql.domain.Field;
-import org.nlpcn.es4sql.domain.KVValue;
-import org.nlpcn.es4sql.domain.MethodField;
-import org.nlpcn.es4sql.domain.Where;
+import org.nlpcn.es4sql.domain.*;
 import org.nlpcn.es4sql.exception.SqlParseException;
 import org.nlpcn.es4sql.parse.ChildrenType;
 import org.nlpcn.es4sql.parse.NestedType;
@@ -69,7 +69,8 @@ public class AggMaker {
             }
             return makeRangeGroup(methodField);
         } else {
-            TermsAggregationBuilder termsBuilder = AggregationBuilders.terms(field.getName()).field(field.getName());
+            String name = field.getAlias() != null ? fixAlias(field.getAlias()) : field.getName();
+            TermsAggregationBuilder termsBuilder = AggregationBuilders.terms(name).field(field.getName());
             groupMap.put(field.getName(), new KVValue("KEY", termsBuilder));
             return termsBuilder;
         }
@@ -123,6 +124,35 @@ public class AggMaker {
         }
     }
 
+    public PipelineAggregationBuilder makePipelineAgg(MethodField field, AggregationBuilder parent) throws SqlParseException {
+        groupMap.put(field.getAlias(), new KVValue("FIELD", parent));
+        field.setAlias(fixAlias(field.getAlias()));
+        switch (field.getName().toUpperCase()) {
+            case "SCRIPT":
+                Map<String, String> bucketPathMap = new HashMap<>();
+                Set<Field> aggFields = getReferenceAggs(field);
+                for (Field f: aggFields) {
+                    bucketPathMap.put(f.getAlias(), f.getAlias());
+                }
+                KVValue kvValue = field.getParams().get(1);
+                return PipelineAggregatorBuilders.bucketScript(field.getAlias(), bucketPathMap, new Script(kvValue.value.toString()));
+            default:
+                throw new SqlParseException("the agg function not to define !");
+        }
+    }
+
+    public Set<Field> getReferenceAggs(MethodField field) {
+        Set<Field> ret = new HashSet<>();
+        Set<String> alias = new HashSet<>();
+        for (Field f: field.flatten()) {
+            boolean isAgg = Select.isAggFunction(f.getName());
+            if (isAgg && alias.add(f.getAlias())) {
+                ret.add(f);
+            }
+        }
+        return ret;
+    }
+
     private void addSpecificPercentiles(PercentilesAggregationBuilder percentilesBuilder, List<KVValue> params) {
         List<Double> percentiles = new ArrayList<>();
         for (KVValue kValue : params) {
@@ -158,6 +188,8 @@ public class AggMaker {
             }
 
         } else if (kvValue.key != null && kvValue.value.toString().trim().startsWith("def")) {
+            return builder.script(new Script(kvValue.value.toString()));
+        } else if (kvValue.key != null && kvValue.valueType == KVValue.ValueType.EVALUATED ) { // script expression
             return builder.script(new Script(kvValue.value.toString()));
         } else if (kvValue.key != null && (kvValue.key.equals("nested") || kvValue.key.equals("reverse_nested"))) {
             NestedType nestedType = (NestedType) kvValue.value;
@@ -401,11 +433,9 @@ public class AggMaker {
         return geoHashGrid;
     }
 
-    private static final String TIME_FARMAT = "yyyy-MM-dd HH:mm:ss";
-
     private ValuesSourceAggregationBuilder dateRange(MethodField field) {
         String alias = gettAggNameFromParamsOrAlias(field);
-        DateRangeAggregationBuilder dateRange = AggregationBuilders.dateRange(alias).format(TIME_FARMAT);
+        DateRangeAggregationBuilder dateRange = AggregationBuilders.dateRange(alias);
 
         String value = null;
         List<String> ranges = new ArrayList<>();
@@ -449,7 +479,7 @@ public class AggMaker {
      */
     private DateHistogramAggregationBuilder dateHistogram(MethodField field) throws SqlParseException {
         String alias = gettAggNameFromParamsOrAlias(field);
-        DateHistogramAggregationBuilder dateHistogram = AggregationBuilders.dateHistogram(alias).format(TIME_FARMAT);
+        DateHistogramAggregationBuilder dateHistogram = AggregationBuilders.dateHistogram(alias);
         String value = null;
         for (KVValue kv : field.getParams()) {
             value = kv.value.toString();

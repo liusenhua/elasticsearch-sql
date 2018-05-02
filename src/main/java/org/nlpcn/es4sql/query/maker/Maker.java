@@ -149,15 +149,27 @@ public abstract class Maker {
 			break;
 		case GT:
             x = QueryBuilders.rangeQuery(name).gt(value);
+            if (cond.getFormat() != null) {
+                ((RangeQueryBuilder)x).format(cond.getFormat());
+            }
 			break;
 		case GTE:
             x = QueryBuilders.rangeQuery(name).gte(value);
+            if (cond.getFormat() != null) {
+                ((RangeQueryBuilder)x).format(cond.getFormat());
+            }
 			break;
 		case LT:
             x = QueryBuilders.rangeQuery(name).lt(value);
+            if (cond.getFormat() != null) {
+                ((RangeQueryBuilder)x).format(cond.getFormat());
+            }
 			break;
 		case LTE:
             x = QueryBuilders.rangeQuery(name).lte(value);
+            if (cond.getFormat() != null) {
+                ((RangeQueryBuilder)x).format(cond.getFormat());
+            }
 			break;
 		case NIN:
 		case IN:
@@ -177,6 +189,9 @@ public abstract class Maker {
 		case BETWEEN:
 		case NBETWEEN:
             x = QueryBuilders.rangeQuery(name).gte(((Object[]) value)[0]).lte(((Object[]) value)[1]);
+            if (cond.getFormat() != null) {
+                ((RangeQueryBuilder)x).format(cond.getFormat());
+            }
 			break;
         case GEO_INTERSECTS:
             String wkt = cond.getValue().toString();

@@ -1,18 +1,15 @@
 package org.nlpcn.es4sql.parse;
 
-import java.util.ArrayList;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
 
 import com.alibaba.druid.sql.ast.expr.*;
+import com.alibaba.druid.util.StringUtils;
+import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
 import org.elasticsearch.common.collect.Tuple;
 import org.nlpcn.es4sql.SQLFunctions;
 import org.nlpcn.es4sql.Util;
-import org.nlpcn.es4sql.domain.Field;
-import org.nlpcn.es4sql.domain.KVValue;
-import org.nlpcn.es4sql.domain.MethodField;
-import org.nlpcn.es4sql.domain.Where;
+import org.nlpcn.es4sql.domain.*;
 import org.nlpcn.es4sql.exception.SqlParseException;
 import com.alibaba.druid.sql.ast.*;
 
@@ -29,9 +26,11 @@ public class FieldMaker {
             throw new SqlParseException("unknow field name : " + expr);
         } else if (expr instanceof SQLBinaryOpExpr) {
             //make a SCRIPT method field;
-            return makeField(makeBinaryMethodField((SQLBinaryOpExpr) expr, alias, true), alias, tableAlias);
+            SQLMethodInvokeExpr mExpr = makeBinaryMethodField((SQLBinaryOpExpr) expr, alias, true);
+            return makeField(mExpr, alias, tableAlias);
 
         } else if (expr instanceof SQLAllColumnExpr) {
+            return new Field("*", null);
         } else if (expr instanceof SQLMethodInvokeExpr) {
             SQLMethodInvokeExpr mExpr = (SQLMethodInvokeExpr) expr;
 
@@ -56,15 +55,42 @@ public class FieldMaker {
             SQLAggregateExpr sExpr = (SQLAggregateExpr) expr;
             return makeMethodField(sExpr.getMethodName(), sExpr.getArguments(), sExpr.getOption(), alias, tableAlias, true);
         } else if (expr instanceof SQLCaseExpr) {
-            String scriptCode = new CaseWhenParser((SQLCaseExpr) expr, alias, tableAlias).parse();
-            List<KVValue> methodParameters = new ArrayList<>();
-            methodParameters.add(new KVValue(alias));
-            methodParameters.add(new KVValue(scriptCode));
-            return new MethodField("script", methodParameters, null, alias);
+            CaseWhenParser caseWhenParser = new CaseWhenParser((SQLCaseExpr) expr, alias, tableAlias);
+            String scriptFromCaseWhen = caseWhenParser.parse();
+            Map<String, String> functionsInCaseWhen = caseWhenParser.getSqlFunctions();
+
+            // First try evaluate the script local, then evaluate it in ES
+            try {
+                List<KVValue> paramers = new LinkedList<>();
+
+                String name = alias;
+                if (StringUtils.isEmpty(name)) {
+                    name = "field_" + SQLFunctions.random();
+                }
+                paramers.add(new KVValue(name));
+
+                String functionScript = Joiner.on(" ").join(functionsInCaseWhen.values());
+                String scriptCode = functionScript + " " + scriptFromCaseWhen;
+                Object ret = Util.evalScript(scriptCode);
+                if (ret instanceof String) {
+                    paramers.add(new KVValue(new SQLCharExpr((String) ret)));
+                } else if (ret instanceof Integer || ret instanceof Long) {
+                    paramers.add(new KVValue(new SQLIntegerExpr((Integer)ret)));
+                } else if (ret instanceof  Float || ret instanceof Double) {
+                    paramers.add(new KVValue(new SQLNumberExpr((Double) ret)));
+                } else if (ret == null) {
+                    paramers.add(new KVValue(new SQLNullExpr()));
+                }
+
+                return new MethodField("script", paramers, null, alias, null);
+            } catch (Exception e) {
+                SQLMethodInvokeExpr mExpr = new SQLMethodInvokeExpr("eval", null);
+                mExpr.addParameter(new SQLCharExpr(scriptFromCaseWhen));
+                return makeMethodField(mExpr.getMethodName(), mExpr.getParameters(), null, alias, tableAlias, true, functionsInCaseWhen);
+            }
         } else {
             throw new SqlParseException("unknown field name : " + expr);
         }
-        return null;
     }
 
     private static Object getScriptValue(SQLExpr expr) throws SqlParseException {
@@ -198,9 +224,17 @@ public class FieldMaker {
     }
 
     public static MethodField makeMethodField(String name, List<SQLExpr> arguments, SQLAggregateOption option, String alias, String tableAlias, boolean first) throws SqlParseException {
+        Map<String, String> functions = null;
+        if (first) {
+            functions = new TreeMap<>();
+        }
+        return makeMethodField(name, arguments, option, alias, tableAlias, first, functions);
+    }
+
+    public static MethodField makeMethodField(String name, List<SQLExpr> arguments, SQLAggregateOption option, String alias, String tableAlias, boolean first, Map<String, String> functions) throws SqlParseException {
         List<KVValue> paramers = new LinkedList<>();
         String finalMethodName = name;
-
+        List<Field> reference = new ArrayList<>();
         for (SQLExpr object : arguments) {
 
             if (object instanceof SQLBinaryOpExpr) {
@@ -209,8 +243,9 @@ public class FieldMaker {
 
                 if (SQLFunctions.buildInFunctions.contains(binaryOpExpr.getOperator().toString().toLowerCase())) {
                     SQLMethodInvokeExpr mExpr = makeBinaryMethodField(binaryOpExpr, alias, first);
-                    MethodField abc = makeMethodField(mExpr.getMethodName(), mExpr.getParameters(), null, null, tableAlias, false);
-                    paramers.add(new KVValue(abc.getParams().get(0).toString(), new SQLCharExpr(abc.getParams().get(1).toString())));
+                    MethodField abc = makeMethodField(mExpr.getMethodName(), mExpr.getParameters(), null, null, tableAlias, Select.isAggFunction(finalMethodName), functions);
+                    reference.add(abc);
+                    paramers.add(new KVValue(abc.getParams().get(0).toString(), new SQLCharExpr(abc.getParams().get(1).toString()), KVValue.ValueType.EVALUATED));
                 } else {
                     if (!binaryOpExpr.getOperator().getName().equals("=")) {
                         paramers.add(new KVValue("script", makeScriptMethodField(binaryOpExpr, null, tableAlias)));
@@ -225,7 +260,7 @@ public class FieldMaker {
                 SQLMethodInvokeExpr mExpr = (SQLMethodInvokeExpr) object;
                 String methodName = mExpr.getMethodName().toLowerCase();
                 if (methodName.equals("script")) {
-                    KVValue script = new KVValue("script", makeMethodField(mExpr.getMethodName(), mExpr.getParameters(), null, alias, tableAlias, true));
+                    KVValue script = new KVValue("script", makeMethodField(mExpr.getMethodName(), mExpr.getParameters(), null, alias, tableAlias, true, functions));
                     paramers.add(script);
                 } else if (methodName.equals("nested") || methodName.equals("reverse_nested")) {
                     NestedType nestedType = new NestedType();
@@ -245,12 +280,57 @@ public class FieldMaker {
                     paramers.add(new KVValue("children", childrenType));
                 } else if (SQLFunctions.buildInFunctions.contains(methodName)) {
                     //throw new SqlParseException("only support script/nested as inner functions");
-                    MethodField abc = makeMethodField(methodName, mExpr.getParameters(), null, null, tableAlias, false);
-                    paramers.add(new KVValue(abc.getParams().get(0).toString(), new SQLCharExpr(abc.getParams().get(1).toString())));
+                    MethodField abc = makeMethodField(methodName, mExpr.getParameters(), null, null, tableAlias, Select.isAggFunction(finalMethodName), functions);
+                    reference.add(abc);
+                    paramers.add(new KVValue(
+                            abc.getParams().get(0).toString(),
+                            new SQLCharExpr(abc.getParams().get(1).toString()),
+                            KVValue.ValueType.EVALUATED
+                    ));
                 } else throw new SqlParseException("only support script/nested/children as inner functions");
             } else if (object instanceof SQLCaseExpr) {
-                String scriptCode = new CaseWhenParser((SQLCaseExpr) object, alias, tableAlias).parse();
-                paramers.add(new KVValue("script",new SQLCharExpr(scriptCode)));
+                CaseWhenParser caseWhenParser = new CaseWhenParser((SQLCaseExpr) object, alias, tableAlias);
+                String scriptFromCaseWhen = caseWhenParser.parse();
+                Map<String, String> functionsInCaseWhen = caseWhenParser.getSqlFunctions();
+
+                // First try evaluate the script local, then evaluate it in ES
+                try {
+                    String functionScript = Joiner.on(" ").join(functionsInCaseWhen.values());
+                    String scriptCode = functionScript + " " + scriptFromCaseWhen;
+                    Object ret = Util.evalScript(scriptCode);
+                    if (ret instanceof String) {
+                        paramers.add(new KVValue(new SQLCharExpr((String) ret)));
+                    } else if (ret instanceof Integer || ret instanceof Long) {
+                        paramers.add(new KVValue(new SQLIntegerExpr((Integer)ret)));
+                    } else if (ret instanceof  Float || ret instanceof Double) {
+                        paramers.add(new KVValue(new SQLNumberExpr((Double) ret)));
+                    } else if (ret == null) {
+                        paramers.add(new KVValue(new SQLNullExpr()));
+                    }
+                } catch (Exception e) {
+                    functions.putAll(functionsInCaseWhen);
+                    SQLMethodInvokeExpr mExpr = new SQLMethodInvokeExpr("eval", null);
+                    mExpr.addParameter(new SQLCharExpr(scriptFromCaseWhen));
+                    MethodField abc = makeMethodField(mExpr.getMethodName(), mExpr.getParameters(), null, null, tableAlias, Select.isAggFunction(finalMethodName), functions);
+                    paramers.add(new KVValue(
+                            abc.getParams().get(0).toString(),
+                            new SQLCharExpr(abc.getParams().get(1).toString()),
+                            KVValue.ValueType.EVALUATED
+                    ));
+                }
+            } else if (object instanceof SQLAggregateExpr) {
+                SQLAggregateExpr mExpr = (SQLAggregateExpr) object;
+                String methodName = mExpr.getMethodName();
+                String fieldAlias = methodName.toLowerCase() + "_" + SQLFunctions.random();
+                MethodField abc = makeMethodField(methodName, mExpr.getArguments(), null, fieldAlias, tableAlias, true, functions);
+                reference.add(abc);
+                String path = abc.getAlias();
+                String refValue = "params." + path.trim();
+                paramers.add(new KVValue(
+                        refValue,
+                        new SQLCharExpr(path),
+                        KVValue.ValueType.REFERENCE
+                ));
             } else {
                 paramers.add(new KVValue(Util.removeTableAilasFromField(object, tableAlias)));
             }
@@ -259,12 +339,11 @@ public class FieldMaker {
 
         //just check we can find the function
         if (SQLFunctions.buildInFunctions.contains(finalMethodName)) {
-            if (alias == null && first) {
+            if (alias == null) {
                 alias = "field_" + SQLFunctions.random();//paramers.get(0).value.toString();
             }
             //should check if field and first .
-            Tuple<String, String> newFunctions = SQLFunctions.function(finalMethodName, paramers,
-                    paramers.get(0).key,first);
+            Tuple<String, String> newFunctions = SQLFunctions.function(finalMethodName, paramers, first, functions);
             paramers.clear();
             if (!first) {
                 //variance
@@ -276,17 +355,23 @@ public class FieldMaker {
             paramers.add(new KVValue(newFunctions.v2()));
             finalMethodName = "script";
         }
+
+        //  give an alias name for reference fields
+        if (alias == null && reference.size() > 0) {
+            alias = finalMethodName.toLowerCase() + "_" + SQLFunctions.random();
+        }
+
         if (first) {
             List<KVValue> tempParamers = new LinkedList<>();
             for (KVValue temp : paramers) {
                 if (temp.value instanceof SQLExpr)
-                    tempParamers.add(new KVValue(temp.key, Util.expr2Object((SQLExpr) temp.value)));
-                else tempParamers.add(new KVValue(temp.key, temp.value));
+                    tempParamers.add(new KVValue(temp.key, Util.expr2Object((SQLExpr) temp.value), temp.valueType));
+                else tempParamers.add(new KVValue(temp.key, temp.value, temp.valueType));
             }
             paramers.clear();
             paramers.addAll(tempParamers);
         }
 
-        return new MethodField(finalMethodName, paramers, option == null ? null : option.name(), alias);
+        return new MethodField(finalMethodName, paramers, option == null ? null : option.name(), alias, reference);
     }
 }

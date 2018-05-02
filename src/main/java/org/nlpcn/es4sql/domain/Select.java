@@ -16,7 +16,7 @@ import java.util.List;
 public class Select extends Query {
 
 	// Using this functions, will cause query to execute as aggregation.
-	private final List<String> aggsFunctions = Arrays.asList("SUM", "MAX", "MIN", "AVG", "TOPHITS", "COUNT", "STATS","EXTENDED_STATS","PERCENTILES","SCRIPTED_METRIC");
+	private static final List<String> aggsFunctions = Arrays.asList("SUM", "MAX", "MIN", "AVG", "TOPHITS", "COUNT", "STATS","EXTENDED_STATS","PERCENTILES","SCRIPTED_METRIC");
     private List<Hint> hints = new ArrayList<>();
 	private List<Field> fields = new ArrayList<>();
 	private List<List<Field>> groupBys = new ArrayList<>();
@@ -145,5 +145,29 @@ public class Select extends Query {
     public boolean isSelectAll() {
         return selectAll;
     }
+
+    public static boolean isAggFunction(String methodName) {
+    	return aggsFunctions.contains(methodName.toUpperCase());
+	}
+
+	public static boolean isAggField(Field field) {
+    	String name = field.getName();
+    	if (isAggFunction(name)) {
+    		return true;
+		}
+
+		if (field instanceof  MethodField) {
+    		List<Field> reference = ((MethodField) field).getReference();
+    		if (reference != null) {
+				for (Field field1 : reference) {
+					if (isAggField(field1)) {
+						return true;
+					}
+				}
+			}
+		}
+
+		return false;
+	}
 }
 

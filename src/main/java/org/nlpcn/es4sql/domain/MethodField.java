@@ -1,8 +1,6 @@
 package org.nlpcn.es4sql.domain;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import org.nlpcn.es4sql.Util;
 
@@ -15,11 +13,16 @@ import org.nlpcn.es4sql.Util;
 public class MethodField extends Field {
 	private List<KVValue> params = null;
 	private String option;
+	private List<Field> reference = null; // The pipeline aggregation field reference other agg fields.
 
-	public MethodField(String name, List<KVValue> params, String option, String alias) {
+    public MethodField(String name, List<KVValue> params, String option, String alias) {
+        this(name, params, option, alias, null);
+    }
+	public MethodField(String name, List<KVValue> params, String option, String alias, List<Field> reference) {
 		super(name, alias);
 		this.params = params;
 		this.option = option;
+		this.reference = reference;
 		if (alias==null||alias.trim().length()==0) {
             Map<String, Object> paramsAsMap = this.getParamsAsMap();
             if(paramsAsMap.containsKey("alias")){
@@ -93,5 +96,32 @@ public class MethodField extends Field {
         if(!this.isChildren()) return null;
 
         return this.getParamsAsMap().get("children").toString();
+    }
+
+    public void addReference(Field field) {
+        if (reference == null) {
+            reference = new ArrayList<Field>();
+        }
+        reference.add(field);
+    }
+
+    public List<Field> getReference() {
+        return  reference;
+    }
+
+    public Set<Field> flatten() {
+        Set<Field> ret = new HashSet<>();
+        ret.add(this);
+
+        if (reference != null) {
+            for (Field f : reference) {
+                if (f instanceof MethodField) {
+                    MethodField f2 = (MethodField) f;
+                    ret.addAll(f2.flatten());
+                }
+            }
+        }
+
+        return ret;
     }
 }
