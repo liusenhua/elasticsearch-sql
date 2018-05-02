@@ -1,9 +1,7 @@
 package org.nlpcn.es4sql.parse;
 
 import com.alibaba.druid.sql.ast.SQLExpr;
-import com.alibaba.druid.sql.ast.expr.SQLCaseExpr;
-import com.alibaba.druid.sql.ast.expr.SQLMethodInvokeExpr;
-import com.alibaba.druid.sql.ast.expr.SQLNullExpr;
+import com.alibaba.druid.sql.ast.expr.*;
 import com.alibaba.druid.util.StringUtils;
 import com.google.common.base.Joiner;
 import org.elasticsearch.common.collect.Tuple;
@@ -16,10 +14,7 @@ import org.nlpcn.es4sql.domain.MethodField;
 import org.nlpcn.es4sql.domain.Where;
 import org.nlpcn.es4sql.exception.SqlParseException;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.TreeMap;
+import java.util.*;
 
 /**
  * Created by allwefantasy on 9/3/16.
@@ -43,6 +38,7 @@ public class CaseWhenParser {
     public String parse() throws SqlParseException {
         List<String> result = new ArrayList<String>();
 
+        List<String> conditions = new ArrayList<>();
         boolean addIfStatement = false;
         for (SQLCaseExpr.Item item : caseExpr.getItems()) {
             SQLExpr conditionExpr = item.getConditionExpr();
@@ -59,16 +55,19 @@ public class CaseWhenParser {
 
             result.add(statementCodes);
 
+            // collect condition codes
             if (addIfStatement == false) {
                 addIfStatement = true;
-                result.add("if(" + conditionCodes + ")" + "{" + parseValueExpr(item.getValueExpr()) + "}");
+                conditions.add("if(" + conditionCodes + ")" + "{" + parseValueExpr(item.getValueExpr()) + "}");
             } else {
-                result.add("else if(" + conditionCodes + ")" + "{" + parseValueExpr(item.getValueExpr()) + "}");
+                conditions.add("else if(" + conditionCodes + ")" + "{" + parseValueExpr(item.getValueExpr()) + "}");
             }
 
             // collect sql functions defined in condition expression
             this.sqlFunctions.putAll(parser.getSqlFunctions());
         }
+
+        result.addAll(conditions);
 
         SQLExpr elseExpr = caseExpr.getElseExpr();
         if (elseExpr == null) {
@@ -83,16 +82,23 @@ public class CaseWhenParser {
     private String parseValueExpr(SQLExpr expr) throws SqlParseException {
         if (expr instanceof SQLMethodInvokeExpr) {
             // return ((SQLMethodInvokeExpr) expr).toString();
-            return parseSQLMethodInvokeExpr((SQLMethodInvokeExpr) expr);
+            SQLMethodInvokeExpr mExpr = (SQLMethodInvokeExpr) expr;
+            return parseSQLMethodInvokeExpr(mExpr.getMethodName(), mExpr.getParameters());
+        } else if (expr instanceof SQLBinaryOpExpr) {
+            SQLMethodInvokeExpr mExpr = FieldMaker.makeBinaryMethodField((SQLBinaryOpExpr) expr, null, false);
+            return parseSQLMethodInvokeExpr(mExpr.getMethodName(), mExpr.getParameters());
+        } else if (expr instanceof SQLAggregateExpr) {
+            SQLAggregateExpr sExpr = (SQLAggregateExpr) expr;
+            return parseSQLMethodInvokeExpr(sExpr.getMethodName(), sExpr.getArguments());
         }
 
         return returnWrapper(Util.getScriptValueWithQuote(expr, "'").toString());
     }
 
-    private String parseSQLMethodInvokeExpr(SQLMethodInvokeExpr soExpr) throws SqlParseException {
+    private String parseSQLMethodInvokeExpr(String name, List<SQLExpr> arguments) throws SqlParseException {
         Map<String, String> functions = this.sqlFunctions;
-        MethodField methodField = FieldMaker.makeMethodField(soExpr.getMethodName(),
-                soExpr.getParameters(),
+        MethodField methodField = FieldMaker.makeMethodField(name,
+                arguments,
                 null,
                 null,
                 this.tableAlias,
@@ -100,7 +106,13 @@ public class CaseWhenParser {
                 functions);
 
         String ret = methodField.getParams().get(0).value.toString();
-        String script = methodField.getParams().size() == 2 ? methodField.getParams().get(1).value.toString() + ";" : "";
+        String script = "";
+        if (methodField.getParams().size() == 2) {
+            script = methodField.getParams().get(1).value.toString();
+            if (script != "" && !script.endsWith("}")) {
+                script = script + "; ";
+            }
+        }
         return script + returnWrapper(ret);
     }
 
@@ -120,9 +132,20 @@ public class CaseWhenParser {
         }
         explainWhere(statements, conditions, where);
 
+        // Fix the "Extraneous if statement" IllegalArgumentException from ES
+        // by define a variable to hold the condition value.
+        List<String> conditionVariables = new ArrayList<>();
+        for (String condition: conditions) {
+            String conditionVariable = "condition_" + Math.abs(new Random().nextInt());
+            conditionVariables.add(conditionVariable);
+
+            String conditionStatement = "def " + conditionVariable + " = " + condition + ";";
+            statements.add(conditionStatement);
+        }
+
         String statementCodes = Joiner.on(" ").join(statements);
         String relation = where.getConn().name().equals("AND") ? " && " : " || ";
-        String conditionCodes = Joiner.on(relation).join(conditions);
+        String conditionCodes = Joiner.on(relation).join(conditionVariables);
 
         return new Tuple<>(statementCodes, conditionCodes);
     }
@@ -137,29 +160,23 @@ public class CaseWhenParser {
                 //  if (def date_part_265146825 = date_part('month', doc['createTime'].value);date_part_265146825 < 10)
                 //  =>
                 //  def date_part_265146825 = date_part('month', doc['createTime'].value); if (date_part_265146825 < 10)
-                String conditionStatement = "";
+
+                // Split the origin script with the last ";" or "}"
                 String script = ((ScriptFilter) condition.getValue()).getScript();
-                String[] splits = script.split(";");
-                int pos = 0;
-                for (int i = splits.length - 1; i >= 0; i--) {
-                    if (splits[i] != "") {
-                        conditionStatement = splits[i];
-                        pos = i;
+                String statement = "";
+                String conditionStatement = script;
+                for (int i = script.length() - 1; i >= 0; i--) {
+                    if (script.charAt(i) == ';' || script.charAt(i) == '}') {
+                        statement = script.substring(0, i + 1);
+                        conditionStatement = script.substring(i + 1, script.length());
                         break;
                     }
                 }
 
-                String statement = "";
-                for(int i = 0; i < pos; ++i) {
-                    if (splits[i] != "") {
-                        statement = statement + splits[i] + ";";
-                    }
-                }
-
-                if (statement != "") {
+                if (!StringUtils.isEmpty(statement)) {
                     statements.add(statement);
                 }
-                if (conditionStatement != "") {
+                if (!StringUtils.isEmpty(conditionStatement)) {
                     codes.add("(" + conditionStatement + ")");
                 }
 

@@ -57,25 +57,11 @@ public class AggregationQueryAction extends QueryAction {
             if (!groupBy.isEmpty()) {
                 Field field = groupBy.get(0);
 
-
                 //make groupby can reference to field alias
                 lastAgg = getGroupAgg(field, select);
 
-                if (lastAgg != null && lastAgg instanceof TermsAggregationBuilder && !(field instanceof MethodField)) {
-                    //if limit size is too small, increasing shard  size is required
-                    if (select.getRowCount() < 200) {
-                        ((TermsAggregationBuilder) lastAgg).shardSize(2000);
-                        for (Hint hint : select.getHints()) {
-                            if (hint.getType() == HintType.SHARD_SIZE) {
-                                if (hint.getParams() != null && hint.getParams().length != 0 && hint.getParams()[0] != null) {
-                                    ((TermsAggregationBuilder) lastAgg).shardSize((Integer) hint.getParams()[0]);
-                                }
-                            }
-                        }
-                    }
-                    if(select.getRowCount()>0) {
-                        ((TermsAggregationBuilder) lastAgg).size(select.getRowCount());
-                    }
+                if (lastAgg != null && lastAgg instanceof TermsAggregationBuilder) {
+                    fixTermsAgg((TermsAggregationBuilder) lastAgg, select, field);
                 }
 
                 if (field.isNested()) {
@@ -104,7 +90,11 @@ public class AggregationQueryAction extends QueryAction {
 
                 for (int i = 1; i < groupBy.size(); i++) {
                     field = groupBy.get(i);
+
                     AggregationBuilder subAgg = getGroupAgg(field, select);
+                    if (subAgg != null && subAgg instanceof TermsAggregationBuilder) {
+                        fixTermsAgg((TermsAggregationBuilder) subAgg, select, field);
+                    }
                       //ES5.0 termsaggregation with size = 0 not supported anymore
 //                    if (subAgg instanceof TermsAggregationBuilder && !(field instanceof MethodField)) {
 
@@ -192,6 +182,29 @@ public class AggregationQueryAction extends QueryAction {
         updateRequestWithHighlight(select, request);
         SqlElasticSearchRequestBuilder sqlElasticRequestBuilder = new SqlElasticSearchRequestBuilder(request);
         return sqlElasticRequestBuilder;
+    }
+
+    private void fixTermsAgg(TermsAggregationBuilder termsAgg, Select select, Field field) {
+        boolean isTermsMethod = (field instanceof MethodField)
+                && field.getName().toLowerCase().equalsIgnoreCase("terms");
+
+        if (!isTermsMethod) {
+            //if limit size is too small, increasing shard size is required
+            if (select.getRowCount() < 200) {
+                termsAgg.shardSize(2000);
+                for (Hint hint : select.getHints()) {
+                    if (hint.getType() == HintType.SHARD_SIZE) {
+                        if (hint.getParams() != null && hint.getParams().length != 0 && hint.getParams()[0] != null) {
+                            termsAgg.shardSize((Integer) hint.getParams()[0]);
+                        }
+                    }
+                }
+            }
+
+            if(select.getRowCount() > 0) {
+                termsAgg.size(select.getRowCount());
+            }
+        }
     }
     
     private AggregationBuilder getGroupAgg(Field field, Select select2) throws SqlParseException {

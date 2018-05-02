@@ -913,7 +913,7 @@ public class SqlParserTests {
                     docValueCounter.incrementAndGet();
                 }
 
-                Assert.assertTrue(docValueCounter.get() == 2);
+                Assert.assertTrue(docValueCounter.get() == 3);
                 Assert.assertTrue(number.groupCount() == 2);
 
             }
@@ -946,7 +946,7 @@ public class SqlParserTests {
                     docValueCounter.incrementAndGet();
                 }
 
-                Assert.assertTrue(docValueCounter.get() == 3);
+                Assert.assertTrue(docValueCounter.get() == 4);
                 Assert.assertTrue(number.groupCount() == 2);
 
             }
