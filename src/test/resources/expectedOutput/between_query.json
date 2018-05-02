@@ -10,7 +10,7 @@
     "script_fields" : {
         "test" : {
             "script" : {
-                "inline" : "def func_1377937050(def doc) { try {def condition_86812962 = (doc['value'].value >= 100 && doc['value'].value <=200); if(condition_86812962){return 'aaa';} else {return doc['value'].value;}} catch (Exception e) { return null;} } def eval_1440086308 = func_1377937050(doc);return eval_1440086308;",
+                "source" : "def func_1377937050(def doc) { try {def condition_86812962 = (doc['value'].value >= 100 && doc['value'].value <=200); if(condition_86812962){return 'aaa';} else {return doc['value'].value;}} catch (Exception e) { return null;} } def eval_1440086308 = func_1377937050(doc);return eval_1440086308;",
                 "lang" : "painless"
             },
             "ignore_failure" : false
