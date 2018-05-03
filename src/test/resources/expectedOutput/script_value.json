@@ -10,7 +10,7 @@
     "script_fields" : {
         "test" : {
             "script" : {
-                "inline" : "def func_1820601108(def doc) { try {def condition_1495498039 = (doc['gender'].empty); if(condition_1495498039){return 'aaa';} else {return doc['gender'].value;}} catch (Exception e) { return null;} } def eval_1623481354 = func_1820601108(doc);return eval_1623481354;",
+                "source" : "def func_1820601108(def doc) { try {def condition_1495498039 = (doc['gender'].empty); if(condition_1495498039){return 'aaa';} else {return doc['gender'].value;}} catch (Exception e) { return null;} } def eval_1623481354 = func_1820601108(doc);return eval_1623481354;",
                 "lang" : "painless"
             },
             "ignore_failure" : false
