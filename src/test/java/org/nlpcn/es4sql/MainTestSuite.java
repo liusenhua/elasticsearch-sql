@@ -199,19 +199,19 @@ public class MainTestSuite {
                 "                \"format\": \"yyyy/MM/dd\"\n" +
                 "            },\n" +
                 "            \"gender\": {\n" +
-                "                \"type\": \"string\",\n" +
+                "                \"type\": \"text\",\n" +
                 "                \"fielddata\": true\n" +
                 "            },\n" +
                 "            \"address\": {\n" +
-                "                \"type\": \"string\",\n" +
+                "                \"type\": \"text\",\n" +
                 "                \"fielddata\": true\n" +
                 "            },\n" +
                 "            \"state\": {\n" +
-                "                \"type\": \"string\",\n" +
+                "                \"type\": \"text\",\n" +
                 "                \"fielddata\": true\n" +
                 "            },\n" +
                 "            \"firstname\": {\n" +
-                "                \"type\": \"string\",\n" +
+                "                \"type\": \"text\",\n" +
                 "                \"fielddata\": true\n" +
                 "            }\n" +
                 "        }\n" +
@@ -259,25 +259,25 @@ public class MainTestSuite {
 				"                \"format\": \"yyyy/MM/dd\"\n" +
 				"            },\n" +
                 "            \"gender\": {\n" +
-                "                \"type\": \"string\",\n" +
+                "                \"type\": \"text\",\n" +
                 "                \"fielddata\": true\n" +
                 "            },\n" +
                 "            \"address\": {\n" +
-                "                \"type\": \"string\",\n" +
+                "                \"type\": \"text\",\n" +
                 "                \"fielddata\": true\n" +
                 "            },\n" +
                 "            \"state\": {\n" +
-                "                \"type\": \"string\",\n" +
+                "                \"type\": \"text\",\n" +
                 "                \"fielddata\": true\n" +
                 "            },\n" +
                 "            \"firstname\": {\n" +
-                "                \"type\": \"string\",\n" +
+                "                \"type\": \"text\",\n" +
                 "                \"fielddata\": true\n" +
                 "            }\n" +
 				"        }\n" +
 				"    }\n" +
 				"}";
-		client.admin().indices().preparePutMapping(TEST_INDEX_ACCOUNT_WITH_NULL).setType("account_with_null").setSource(dataMapping).execute().actionGet();
+		client.admin().indices().preparePutMapping(TEST_INDEX_ACCOUNT_WITH_NULL).setType("account_with_null").setSource(dataMapping, XContentType.JSON).execute().actionGet();
 	}
 
     private static void preparePhrasesIndex() {
