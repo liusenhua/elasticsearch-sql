@@ -211,7 +211,6 @@ public class SqlParser {
             }
 
             String orderByName;
-
             Field field = FieldMaker.makeField(expr, null, null);
             if (field instanceof MethodField && !is_select_item) {
                 select.addField(field);
@@ -227,8 +226,8 @@ public class SqlParser {
 
             orderByName = orderByName.replace("`", "");
             if (alias != null) orderByName = orderByName.replaceFirst(alias + "\\.", "");
-            select.addOrderBy(orderByName, type);
 
+            select.addOrderBy(field.getNestedPath(), orderByName, type);
         }
     }
 

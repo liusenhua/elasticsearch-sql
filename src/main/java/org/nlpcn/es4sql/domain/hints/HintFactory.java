@@ -145,6 +145,11 @@ public class HintFactory {
             return new Hint(HintType.COLLAPSE, new String[]{collapse});
         }
 
+        if (hintAsString.startsWith("! POST_FILTER")) {
+            String postFilter = getParamFromHint(hintAsString, "! POST_FILTER");
+            return new Hint(HintType.POST_FILTER, new String[]{postFilter});
+        }
+
         return null;
     }
 

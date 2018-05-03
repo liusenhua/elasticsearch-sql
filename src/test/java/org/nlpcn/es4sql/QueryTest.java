@@ -217,7 +217,7 @@ public class QueryTest {
 		}
 	}
 
-	@Test
+    @Test
     public void regexpQueryTest() throws SqlParseException, SQLFeatureNotSupportedException {
         String query = String.format("select * from %s/dog where dog_name = REGEXP_QUERY('sn.*', 'INTERSECTION|COMPLEMENT|EMPTY', 10000)", TEST_INDEX_DOG);
         SearchHit[] hits = query(query).getHits();
