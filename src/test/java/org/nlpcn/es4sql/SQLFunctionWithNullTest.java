@@ -426,12 +426,12 @@ public class SQLFunctionWithNullTest {
 
     @Test
     public void substring() throws Exception {
-        String query = "SELECT address," +
-                "substring(address, 0) as substr_0," +
-                "substring(address, 5) as substr_5, " +
-                "substring(address, 5, 5) as substr_5_5," +
-                "substring(address, -3) as substr_-3, " +
-                "substring(address, -3, 1) as substr_-3_1" +
+        String query = "SELECT address.keyword as str," +
+                "substring(address.keyword, 0) as substr_0, " +
+                "substring(address.keyword, 5) as substr_5, " +
+                "substring(address.keyword, 5, 5) as substr_5_5," +
+                "substring(address.keyword, -3) as substr_-3, " +
+                "substring(address.keyword, -3, 1) as substr_-3_1" +
                 " FROM " + TEST_INDEX_ACCOUNT_WITH_NULL + "/account_with_null";
         printQuery(query);
         CSVResult csvResult = getCsvResult(false, query);
